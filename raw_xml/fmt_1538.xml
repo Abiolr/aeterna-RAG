@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>2362</FormatID>
+      <FormatName>CompuServe RLE</FormatName>
+      <FormatVersion> </FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes>Image (Raster)</FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>CompuServe RLE is a type of run-length encoding graphics monochrome file format, introduced by CompuServe in the 1980s to be used by the CompuServe on-line service. It is the predecessor of CompuServe's GIF file format that supported colour and was invented by Steve Wilhite. The image dimensions are either Medium (128x96) and High (256x192) resolution RLE- compressed files. Files consist entirely of ASCII characters, though some are control characters.</FormatDescription>
+      <BinaryFileFormat> </BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>180</ProvenanceSourceID>
+      <ProvenanceName>The National Archives and Records Administration / The National Archives and Records Administration</ProvenanceName>
+      <ProvenanceSourceDate>29 Oct 2021</ProvenanceSourceDate>
+      <ProvenanceDescription> </ProvenanceDescription>
+      <LastUpdatedDate>29 Oct 2021</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>fmt/1538</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>rle</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <InternalSignature>
+        <SignatureID>1884</SignatureID>
+        <SignatureName>CompuServe RLE</SignatureName>
+        <SignatureNote>BOF: Magic bytes: '.GH or .GM'</SignatureNote>
+        <ByteSequence>
+          <ByteSequenceID>2179</ByteSequenceID>
+          <PositionType>Absolute from BOF</PositionType>
+          <Offset>0</Offset>
+          <MaxOffset>0</MaxOffset>
+          <IndirectOffsetLocation> </IndirectOffsetLocation>
+          <IndirectOffsetLength> </IndirectOffsetLength>
+          <Endianness> </Endianness>
+          <ByteSequenceValue>1B47(48|4D)</ByteSequenceValue>
+        </ByteSequence>
+      </InternalSignature>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

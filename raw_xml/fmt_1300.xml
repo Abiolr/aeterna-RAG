@@ -1,0 +1,128 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>2118</FormatID>
+      <FormatName>Broderbund The Print Shop/PrintMaster/American Greetings Project</FormatName>
+      <FormatVersion>10-23</FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes>Presentation</FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>The Print Shop is a desktop publishing application published by Broderbund. The software has a range of format extensions dependent on the type of project being created and the format is produced by a range of Broderbund branded products. More information about the format family can be found here: http://fileformats.archiveteam.org/wiki/The_Print_Shop. The format is based on the OLE2 compound file format.</FormatDescription>
+      <BinaryFileFormat>Text</BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>220</ProvenanceSourceID>
+      <ProvenanceName>The Church of Jesus Christ of Latter-Day Saints / The Church of Jesus Christ of Latter-Day Saints</ProvenanceName>
+      <ProvenanceSourceDate>18 Jan 2020</ProvenanceSourceDate>
+      <ProvenanceDescription>This format can be identified via a container signature in DROID version 6 or later. The PRONOM database cannot currently represent container signatures.</ProvenanceDescription>
+      <LastUpdatedDate>18 Jan 2020</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>fmt/1300</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>ban</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>bro</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>biz</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>cal</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>car</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>cer</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>env</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>fax</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>sig</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>cft</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>hcr</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>lbl</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>let</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>nws</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>not</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>pcr</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>php</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>tsh</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>web</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>sti</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

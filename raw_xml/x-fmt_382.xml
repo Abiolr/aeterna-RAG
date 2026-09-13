@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>653</FormatID>
+      <FormatName>Macromedia FLV</FormatName>
+      <FormatVersion>1</FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes>Video</FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>Flash Video, introduced in 2002, is a container format used to deliver digital video content over the internet through Macromedia Flash Player 6 and newer. It includes two primary formats: FLV (the original format) and F4V (introduced later, based on the ISO base media file format). Video streams were commonly encoded with Sorenson Spark (a proprietary variant of the H.263 standard), the first codec supported in Flash Player. Later versions also supported On2 VP6 and H.264. Developed by Macromedia (later acquired by Adobe in 2005), Flash Video became the de facto standard for web-based video streaming in the early 2000s.</FormatDescription>
+      <BinaryFileFormat>Binary</BinaryFileFormat>
+      <ByteOrders>Big-endian (Motorola)</ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>1</ProvenanceSourceID>
+      <ProvenanceName>Digital Preservation Department / The National Archives</ProvenanceName>
+      <ProvenanceSourceDate>11 Mar 2005</ProvenanceSourceDate>
+      <ProvenanceDescription>v.120- Added new description as part of PRONOM Research Week 2024. Submitted by the J. Paul Getty Trust.</ProvenanceDescription>
+      <LastUpdatedDate>02 Aug 2005</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>video/x-flv</Identifier>
+        <IdentifierType>MIME</IdentifierType>
+      </FileFormatIdentifier>
+      <FileFormatIdentifier>
+        <Identifier>x-fmt/382</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>flv</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <InternalSignature>
+        <SignatureID>49</SignatureID>
+        <SignatureName>FLV 1</SignatureName>
+        <SignatureNote>Header only</SignatureNote>
+        <ByteSequence>
+          <ByteSequenceID>153</ByteSequenceID>
+          <PositionType>Absolute from BOF</PositionType>
+          <Offset>0</Offset>
+          <MaxOffset> </MaxOffset>
+          <IndirectOffsetLocation> </IndirectOffsetLocation>
+          <IndirectOffsetLength> </IndirectOffsetLength>
+          <Endianness> </Endianness>
+          <ByteSequenceValue>464C5601</ByteSequenceValue>
+        </ByteSequence>
+      </InternalSignature>
+      <RelatedFormat>
+        <RelationshipType>Has priority over</RelationshipType>
+        <RelatedFormatID>687</RelatedFormatID>
+        <RelatedFormatName>MPEG 1/2 Audio Layer 3</RelatedFormatName>
+        <RelatedFormatVersion> </RelatedFormatVersion>
+      </RelatedFormat>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

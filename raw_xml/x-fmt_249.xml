@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>365</FormatID>
+      <FormatName>Microsoft Outlook Personal Folders (Unicode)</FormatName>
+      <FormatVersion>2003-2007</FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes> </FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>The Personal Folders File or PST is an open proprietary data file format used to store local copies of messages, calendar events, and other items within Microsoft software including Microsoft Office Outlook. PST files are used to store archived items and to maintain offline availability of the items. 
+
+PST is a stand-alone, self-contained, structured binary file format that does not require any external dependencies. Each PST file represents a message store that contains an arbitrary hierarchy of Folder objects, which contains Message objects, which can contain Attachment objects. Information about Folder objects, Message objects, and Attachment objects are stored in properties, which collectively contain all of the information about the particular item.
+
+PST_Unicode is the default format used by Office Outlook versions starting with Outlook 2003 and includes Outlook 2007, Outlook 2010 and Outlook 2013. It employs the Unicode character set.
+
+The file size constraints for PST_Unicode are significantly larger than the PST_ANSI overall size limit of 2 gigabytes (GB). PST_Unicode can support file sizes up to 20 GB in Outlook 2003 and Outlook 2007 and file sizes up to 50 GB for Outlook 2010 and Outlook 2013. According to Microsoft, these file size limits can be extended but would negatively impact performance.</FormatDescription>
+      <BinaryFileFormat>Text</BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>1</ProvenanceSourceID>
+      <ProvenanceName>Digital Preservation Department / The National Archives</ProvenanceName>
+      <ProvenanceSourceDate>02 Aug 2005</ProvenanceSourceDate>
+      <ProvenanceDescription>Digital preservation research. v.120- New description, library of congress fdd identifier and notes added as part of PRONOM Research Week 2024. Submitted by the Library of Congress.</ProvenanceDescription>
+      <LastUpdatedDate>22 Oct 2009</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>fdd000378</Identifier>
+        <IdentifierType>Library of Congress Format Description Identifier</IdentifierType>
+      </FileFormatIdentifier>
+      <FileFormatIdentifier>
+        <Identifier>x-fmt/249</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>pst</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <InternalSignature>
+        <SignatureID>261</SignatureID>
+        <SignatureName>Personal Storage Table *.pst (Unicode)</SignatureName>
+        <SignatureNote>Byte analysis completed in http://downloads.sourceforge.net/libpff/Personal_Foler_File_Format.pdf (Personal Folder File (PFF) File Format Specification) and sequence confirmed by research completed in http://www.five-ten-sg.com/libpst/rn01re06.html. PST file header, 24 bytes in total.</SignatureNote>
+        <ByteSequence>
+          <ByteSequenceID>333</ByteSequenceID>
+          <PositionType>Absolute from BOF</PositionType>
+          <Offset>0</Offset>
+          <MaxOffset> </MaxOffset>
+          <IndirectOffsetLocation> </IndirectOffsetLocation>
+          <IndirectOffsetLength> </IndirectOffsetLength>
+          <Endianness>Little-endian</Endianness>
+          <ByteSequenceValue>2142444E{4}534D1700</ByteSequenceValue>
+        </ByteSequence>
+      </InternalSignature>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

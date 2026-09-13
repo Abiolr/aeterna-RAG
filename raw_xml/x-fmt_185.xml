@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>258</FormatID>
+      <FormatName>Raw Bitmap</FormatName>
+      <FormatVersion> </FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes>Image (Raster)</FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>RawBitmap is a pure binary format for storing raster image data, where the image type and dimensions are specified separately. It serves as an intermediate format for imaging devices, storing images as RGB or grayscale bitmaps with an 8-bit depth per channel. This binary format does not include metadata and is similar to the binary component of PPM files.</FormatDescription>
+      <BinaryFileFormat>Text</BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>1</ProvenanceSourceID>
+      <ProvenanceName>Digital Preservation Department / The National Archives</ProvenanceName>
+      <ProvenanceSourceDate>02 Aug 2005</ProvenanceSourceDate>
+      <ProvenanceDescription>v.120- New description and notes added as part of PRONOM Research Week 2024. Submitted by Brigham Young University.</ProvenanceDescription>
+      <LastUpdatedDate>19 Feb 2025</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>x-fmt/185</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>raw</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

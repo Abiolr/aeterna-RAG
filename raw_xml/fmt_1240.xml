@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>2058</FormatID>
+      <FormatName>Band Sequential (BSQ) Image Encoding</FormatName>
+      <FormatVersion> </FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes>GIS</FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>Band sequential file is an ASCII description file that stores the pixel values of an image in a file. It is commonly used in geospatial software. The file stores the data for each band of an image, for example data for all the pixels for the first band is stored first, and so on. To be interpreted the file requires a header file. Other optional information files that can appear alongside these are colour and statistic files.</FormatDescription>
+      <BinaryFileFormat> </BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>234</ProvenanceSourceID>
+      <ProvenanceName>National Library of Australia / National Library of Australia</ProvenanceName>
+      <ProvenanceSourceDate>18 Jan 2020</ProvenanceSourceDate>
+      <ProvenanceDescription> </ProvenanceDescription>
+      <LastUpdatedDate>16 Oct 2021</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>fmt/1240</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>bsq</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

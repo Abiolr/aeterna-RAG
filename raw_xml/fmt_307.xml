@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>1052</FormatID>
+      <FormatName>Quicken Interchange Format</FormatName>
+      <FormatVersion> </FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes> </FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>Quicken Interchange Format (QIF) is an open specification and specially formated ASCII fie for reading and writing financial data to media (i.e. files). Although still widely used, QIF is a format older than Open Financial Exchange (OFX).</FormatDescription>
+      <BinaryFileFormat> </BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>1</ProvenanceSourceID>
+      <ProvenanceName>Digital Preservation Department / The National Archives</ProvenanceName>
+      <ProvenanceSourceDate>02 Dec 2010</ProvenanceSourceDate>
+      <ProvenanceDescription>v.120- New description and notes added as part of PRONOM Research Week 2024. Submitted by Brigham Young University.</ProvenanceDescription>
+      <LastUpdatedDate>03 Jan 2025</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>application/qif</Identifier>
+        <IdentifierType>MIME</IdentifierType>
+      </FileFormatIdentifier>
+      <FileFormatIdentifier>
+        <Identifier>fmt/307</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>qif</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <InternalSignature>
+        <SignatureID>399</SignatureID>
+        <SignatureName>Quicken Interchange Format</SignatureName>
+        <SignatureNote>Header line !Type: followed by entry sign, each entry closed with ^</SignatureNote>
+        <ByteSequence>
+          <ByteSequenceID>505</ByteSequenceID>
+          <PositionType>Absolute from BOF</PositionType>
+          <Offset>0</Offset>
+          <MaxOffset>64</MaxOffset>
+          <IndirectOffsetLocation> </IndirectOffsetLocation>
+          <IndirectOffsetLength> </IndirectOffsetLength>
+          <Endianness> </Endianness>
+          <ByteSequenceValue>21547970653A*5E</ByteSequenceValue>
+        </ByteSequence>
+      </InternalSignature>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

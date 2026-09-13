@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>2416</FormatID>
+      <FormatName>Visual Basic Binary Form File</FormatName>
+      <FormatVersion> </FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes>Text (Unstructured)</FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>Generated in Visual Basic, frx files encode the binary data for images specified by the accompanying .frm file.</FormatDescription>
+      <BinaryFileFormat> </BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>234</ProvenanceSourceID>
+      <ProvenanceName>National Library of Australia / National Library of Australia</ProvenanceName>
+      <ProvenanceSourceDate>06 Jan 2022</ProvenanceSourceDate>
+      <ProvenanceDescription> </ProvenanceDescription>
+      <LastUpdatedDate>06 Jan 2022</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>fmt/1590</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>frx</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

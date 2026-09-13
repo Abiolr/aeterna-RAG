@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>967</FormatID>
+      <FormatName>Microsoft Office Binder File for Windows</FormatName>
+      <FormatVersion>95</FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes> </FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>Office Binder, a companion application bundled with Office 95, makes it possible for you to group all your documents, workbooks, and presentations for a project all in one file. The Binder format uses the Microsoft Compund Object Container to group other office files together. No longer supported by Office software. Must use UNBIND.EXE provided with Office XP and 2003 to extract contents.</FormatDescription>
+      <BinaryFileFormat>Text</BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>1</ProvenanceSourceID>
+      <ProvenanceName>Digital Preservation Department / The National Archives</ProvenanceName>
+      <ProvenanceSourceDate>07 Jan 2010</ProvenanceSourceDate>
+      <ProvenanceDescription>v.120- New description added as part of PRONOM Research Week 2024. Submitted by Brigham Young University.</ProvenanceDescription>
+      <LastUpdatedDate>03 Jan 2025</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>fmt/237</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>obd</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

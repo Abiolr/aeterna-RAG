@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>1626</FormatID>
+      <FormatName>Apple iWork Numbers</FormatName>
+      <FormatVersion>Generic</FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes>Spreadsheet</FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>Numbers is a spreadsheet application created by Apple as part of the iWork Productivity Suite. This entry is currently an extension-only entry to provide a default identification in the absence of a signature-based identification.</FormatDescription>
+      <BinaryFileFormat> </BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>178</ProvenanceSourceID>
+      <ProvenanceName>National Library of New Zealand / National Library of New Zealand</ProvenanceName>
+      <ProvenanceSourceDate>16 Dec 2015</ProvenanceSourceDate>
+      <ProvenanceDescription> </ProvenanceDescription>
+      <LastUpdatedDate>30 Sep 2020</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>fmt/825</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>numbers</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

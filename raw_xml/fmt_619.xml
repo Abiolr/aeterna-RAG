@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>1415</FormatID>
+      <FormatName>GeoGebra</FormatName>
+      <FormatVersion>1.x</FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes>Image (Vector)</FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>GeoGebra is a mathematics software package.</FormatDescription>
+      <BinaryFileFormat> </BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>202</ProvenanceSourceID>
+      <ProvenanceName>KULeuven - LIBIS / KULeuven - LIBIS</ProvenanceName>
+      <ProvenanceSourceDate>14 Feb 2014</ProvenanceSourceDate>
+      <ProvenanceDescription>This format is identifiable via a container signature in DROID 6 and later.</ProvenanceDescription>
+      <LastUpdatedDate>14 Feb 2014</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>application/vnd.geogebra.file</Identifier>
+        <IdentifierType>MIME</IdentifierType>
+      </FileFormatIdentifier>
+      <FileFormatIdentifier>
+        <Identifier>fmt/619</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>ggb</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <RelatedFormat>
+        <RelationshipType>Is previous version of</RelationshipType>
+        <RelatedFormatID>1413</RelatedFormatID>
+        <RelatedFormatName>GeoGebra</RelatedFormatName>
+        <RelatedFormatVersion> </RelatedFormatVersion>
+      </RelatedFormat>
+      <RelatedFormat>
+        <RelationshipType>Is subsequent version of</RelationshipType>
+        <RelatedFormatID>1414</RelatedFormatID>
+        <RelatedFormatName>GeoGebra</RelatedFormatName>
+        <RelatedFormatVersion> </RelatedFormatVersion>
+      </RelatedFormat>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

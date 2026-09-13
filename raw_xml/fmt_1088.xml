@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>1896</FormatID>
+      <FormatName>Visual Basic (VB) File</FormatName>
+      <FormatVersion> </FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes>Text (Structured)</FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>A .vb file is typically a source file written in the Visual Basic programming Language. It contains Visual Basic code but doesn't have a header or mandatory elements that can be used by PRONOM for identification purposes.</FormatDescription>
+      <BinaryFileFormat> </BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>225</ProvenanceSourceID>
+      <ProvenanceName>National Library of Scotland / National Library of Scotland</ProvenanceName>
+      <ProvenanceSourceDate>21 Aug 2017</ProvenanceSourceDate>
+      <ProvenanceDescription> </ProvenanceDescription>
+      <LastUpdatedDate>21 Aug 2017</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>fmt/1088</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>vb</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

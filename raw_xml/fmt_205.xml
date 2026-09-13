@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>931</FormatID>
+      <FormatName>Synchronized Multimedia Integration Language (Generic)</FormatName>
+      <FormatVersion> </FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes>Text (Mark-up)</FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>Synchronized Multimedia Integration Language is a World Wide Web Consortium recommended Extensible Markup Language (XML) markup language to describe multimedia presentations. It defines markup for timing, layout, animations, visual transitions, media embedding and others. SMIL allows presenting media items such as text, images, video, audio, links to other SMIL presentations, and files from multiple web servers. SMIL markup is written in XML, and has similarities to HTML. This is the generic entry for this file format which most commonly is denoted with the .smil extension. It is likely that the truncated .smi extension refers specifically to the metadata files accompanying the corresponding images taken by Sony digital cameras.</FormatDescription>
+      <BinaryFileFormat>Text</BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>1</ProvenanceSourceID>
+      <ProvenanceName>Digital Preservation Department / The National Archives</ProvenanceName>
+      <ProvenanceSourceDate>28 Oct 2009</ProvenanceSourceDate>
+      <ProvenanceDescription>11/2024(v.120)- variable in the BOF byte sequence expanded from 20-86 to 20-256 to allow for a DOCTYPE. Submitted by Archives New Zealand and Brigham Young University.</ProvenanceDescription>
+      <LastUpdatedDate>04 Oct 2024</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>fmt/205</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>smil</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>smi</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <InternalSignature>
+        <SignatureID>2051</SignatureID>
+        <SignatureName>Synchronized Multimedia Integration Language</SignatureName>
+        <SignatureNote>BOF, offset 0-3, magic bytes:'&lt;?xml version=("|')1.0("|'){20-256}&lt;smil
+EOF, offset 0-3, magic bytes: &lt;/smil&gt;</SignatureNote>
+        <ByteSequence>
+          <ByteSequenceID>2378</ByteSequenceID>
+          <PositionType>Absolute from BOF</PositionType>
+          <Offset>0</Offset>
+          <MaxOffset>3</MaxOffset>
+          <IndirectOffsetLocation> </IndirectOffsetLocation>
+          <IndirectOffsetLength> </IndirectOffsetLength>
+          <Endianness> </Endianness>
+          <ByteSequenceValue>3C3F786D6C2076657273696F6E3D(22|27)312E30(22|27){20-256}3C736D696C</ByteSequenceValue>
+        </ByteSequence>
+        <ByteSequence>
+          <ByteSequenceID>2562</ByteSequenceID>
+          <PositionType>Absolute from EOF</PositionType>
+          <Offset>0</Offset>
+          <MaxOffset>3</MaxOffset>
+          <IndirectOffsetLocation> </IndirectOffsetLocation>
+          <IndirectOffsetLength> </IndirectOffsetLength>
+          <Endianness> </Endianness>
+          <ByteSequenceValue>3C2F736D696C3E</ByteSequenceValue>
+        </ByteSequence>
+      </InternalSignature>
+      <RelatedFormat>
+        <RelationshipType>Has priority over</RelationshipType>
+        <RelatedFormatID>638</RelatedFormatID>
+        <RelatedFormatName>Extensible Markup Language</RelatedFormatName>
+        <RelatedFormatVersion> </RelatedFormatVersion>
+      </RelatedFormat>
+      <RelatedFormat>
+        <RelationshipType>Is subtype of</RelationshipType>
+        <RelatedFormatID>638</RelatedFormatID>
+        <RelatedFormatName>Extensible Markup Language</RelatedFormatName>
+        <RelatedFormatVersion> </RelatedFormatVersion>
+      </RelatedFormat>
+      <RelatedFormat>
+        <RelationshipType>Is subtype of</RelationshipType>
+        <RelatedFormatID>2626</RelatedFormatID>
+        <RelatedFormatName>Extensible Markup Language</RelatedFormatName>
+        <RelatedFormatVersion> </RelatedFormatVersion>
+      </RelatedFormat>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

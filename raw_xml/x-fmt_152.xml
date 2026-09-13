@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>214</FormatID>
+      <FormatName>Digital Video</FormatName>
+      <FormatVersion> </FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes>Video</FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>The Digital Video file format was developed as a videocassette format in the 1990s by a consortium of consumer video companies and is described in the IEC 61834 series of standards. DV video content utilizes Discrete Cosine Transform compression, but allows for higher quality than formats that use similar compression schemes. DV files can be "raw" with the .dv file extension or wrapped into video container formats.</FormatDescription>
+      <BinaryFileFormat>Text</BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>1</ProvenanceSourceID>
+      <ProvenanceName>Digital Preservation Department / The National Archives</ProvenanceName>
+      <ProvenanceSourceDate>02 Aug 2005</ProvenanceSourceDate>
+      <ProvenanceDescription>v.120- New description added as part of PRONOM Research Week 2024. Submitted by Duke University Libraries.</ProvenanceDescription>
+      <LastUpdatedDate>03 Jan 2025</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>video/dv</Identifier>
+        <IdentifierType>MIME</IdentifierType>
+      </FileFormatIdentifier>
+      <FileFormatIdentifier>
+        <Identifier>x-fmt/152</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>dv</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

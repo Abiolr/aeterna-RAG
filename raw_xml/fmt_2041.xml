@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>3916</FormatID>
+      <FormatName>Android Package File</FormatName>
+      <FormatVersion> </FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes> </FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription> </FormatDescription>
+      <BinaryFileFormat> </BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID> </ProvenanceSourceID>
+      <ProvenanceName>Bibliothèque nationale de France / Bibliothèque nationale de France</ProvenanceName>
+      <ProvenanceSourceDate> </ProvenanceSourceDate>
+      <ProvenanceDescription> </ProvenanceDescription>
+      <LastUpdatedDate> </LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>fmt/2041</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>apk</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <RelatedFormat>
+        <RelationshipType>Has priority over</RelationshipType>
+        <RelatedFormatID>382</RelatedFormatID>
+        <RelatedFormatName>ZIP Format</RelatedFormatName>
+        <RelatedFormatVersion> </RelatedFormatVersion>
+      </RelatedFormat>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

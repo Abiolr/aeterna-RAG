@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>882</FormatID>
+      <FormatName>Microsoft Excel for Macintosh</FormatName>
+      <FormatVersion>2002</FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes>Spreadsheet</FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>This PUID has been deprecated in favour of another entry. Please see fmt/62: Microsoft Excel 2000-2003 Workbook.</FormatDescription>
+      <BinaryFileFormat>Text</BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>1</ProvenanceSourceID>
+      <ProvenanceName>Digital Preservation Department / The National Archives</ProvenanceName>
+      <ProvenanceSourceDate>28 Sep 2009</ProvenanceSourceDate>
+      <ProvenanceDescription> </ProvenanceDescription>
+      <LastUpdatedDate>21 Apr 2023</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>fmt/176</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

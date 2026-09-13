@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>3940</FormatID>
+      <FormatName>TOML</FormatName>
+      <FormatVersion> </FormatVersion>
+      <FormatAliases>TOML (Tom's Obvious Minimal Language), TOML (Tom's Own Markup Language)</FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes> </FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>TOML (Tom’s Obvious Minimal Language) was created by Tom Preston-Werner, in the github repository tom-lang. TOML is a minimal configuration file format that is designed with clear semantics so as to be easily human-readable. TOML is designed to map unambiguously to a hash table (synonymous with a dictionary or map) and so can be parsed and understood by a number of programming languages. Data structures represented by TOML can often be mapped into other languages as required such as JSON or YAML.</FormatDescription>
+      <BinaryFileFormat> </BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID> </ProvenanceSourceID>
+      <ProvenanceName>Ross Spencer / Ravensburger AG</ProvenanceName>
+      <ProvenanceSourceDate> </ProvenanceSourceDate>
+      <ProvenanceDescription> </ProvenanceDescription>
+      <LastUpdatedDate> </LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>fmt/2065</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <FileFormatIdentifier>
+        <Identifier>application/toml</Identifier>
+        <IdentifierType>MIME</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>toml</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

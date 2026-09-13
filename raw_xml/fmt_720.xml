@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>1519</FormatID>
+      <FormatName>MBOX</FormatName>
+      <FormatVersion> </FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes>Text (Structured)</FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>MBOX is a commonly used format for storing email messages. MBOX files may be produced by a variety of email clients, however these are often not mutually compatible. 
+
+MBOX databases typically contain a linear sequence of electronic mail messages. Each message begins with a separator line that identifies the message sender, and also identifies the date and time at which the message was received by the final recipient (either the last-hop system in the transfer path, or the system which serves as the recipient's mailstore).  Each message is typically terminated by an empty line.  The end of the database is usually recognized by either the absence of any additional data, or by the presence of an explicit end-of-file marker. 
+
+Attachments within MBOX files are typically base 64 encoded, allowing binary data to be transferred over media designed to deal with textual data. 
+
+Due to the variety of MBOX structures, it is not currently possible to produce an authoritative signature for the format.</FormatDescription>
+      <BinaryFileFormat> </BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>1</ProvenanceSourceID>
+      <ProvenanceName>Digital Preservation Department / The National Archives</ProvenanceName>
+      <ProvenanceSourceDate>12 Feb 2015</ProvenanceSourceDate>
+      <ProvenanceDescription>	v.123- New signature created. Submitted by Preservica; v.125- Priority over fmt/950 MIME Email 1.0 added. Submitted by Preservica.</ProvenanceDescription>
+      <LastUpdatedDate>02 Sep 2026</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>application/mbox</Identifier>
+        <IdentifierType>MIME</IdentifierType>
+      </FileFormatIdentifier>
+      <FileFormatIdentifier>
+        <Identifier>fmt/720</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>mbox</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <InternalSignature>
+        <SignatureID>3460</SignatureID>
+        <SignatureName>MBOX</SignatureName>
+        <SignatureNote>Based on https://www.rfc-editor.org/rfc/rfc4155, BOF: ASCII string 'From ' , followed by a {1-255} wildcard in place of a sender identifier or system message, followed by a ctime-format timestamp comprising an English-language three-character weekday abbreviation (Mon|Tue|Wed|Thu|Fri|Sat|Sun), three-character month abbreviation (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec), day-of-month digit, and time in HH:MM:SS format.</SignatureNote>
+        <ByteSequence>
+          <ByteSequenceID>3854</ByteSequenceID>
+          <PositionType>Absolute from BOF</PositionType>
+          <Offset>0</Offset>
+          <MaxOffset>0</MaxOffset>
+          <IndirectOffsetLocation> </IndirectOffsetLocation>
+          <IndirectOffsetLength> </IndirectOffsetLength>
+          <Endianness> </Endianness>
+          <ByteSequenceValue>46726F6D20{1-255}(4D6F6E|547565|576564|546875|467269|536174|53756E)20{0-2}(4A616E|466562|4D6172|417072|4D6179|4A756E|4A756C|417567|536570|4F6374|4E6F76|446563)20{0-2}[30:39]20[30:32][30:39]3A[30:35][30:39]3A[30:35][30:39]</ByteSequenceValue>
+        </ByteSequence>
+      </InternalSignature>
+      <RelatedFormat>
+        <RelationshipType>Has priority over</RelationshipType>
+        <RelatedFormatID>1755</RelatedFormatID>
+        <RelatedFormatName>MIME Email</RelatedFormatName>
+        <RelatedFormatVersion> </RelatedFormatVersion>
+      </RelatedFormat>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

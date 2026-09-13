@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>425</FormatID>
+      <FormatName>MPEG 1/2 Audio Layer 3 Streaming</FormatName>
+      <FormatVersion> </FormatVersion>
+      <FormatAliases>MP3</FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes>Text (Unstructured)</FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>A plain-text playlist of one or more media files and their location.</FormatDescription>
+      <BinaryFileFormat>Text</BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>1</ProvenanceSourceID>
+      <ProvenanceName>Digital Preservation Department / The National Archives</ProvenanceName>
+      <ProvenanceSourceDate>02 Aug 2005</ProvenanceSourceDate>
+      <ProvenanceDescription>v.118: Description and links added as part of PRONOM Research Week 2023. The Church of Jesus Christ of Latter-day Saints.
+V.120: Added extension m3u8.</ProvenanceDescription>
+      <LastUpdatedDate>17 Apr 2024</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>audio/mpeg</Identifier>
+        <IdentifierType>MIME</IdentifierType>
+      </FileFormatIdentifier>
+      <FileFormatIdentifier>
+        <Identifier>x-fmt/279</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>m3u</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>m3u8</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <RelatedFormat>
+        <RelationshipType>Is subsequent version of</RelationshipType>
+        <RelatedFormatID>923</RelatedFormatID>
+        <RelatedFormatName>MPEG Audio Stream Layer II</RelatedFormatName>
+        <RelatedFormatVersion> </RelatedFormatVersion>
+      </RelatedFormat>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>

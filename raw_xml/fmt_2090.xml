@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='utf-8'?>
+<PRONOM-Report xmlns="http://pronom.nationalarchives.gov.uk">
+  <report_format_detail>
+    <FileFormat>
+      <FormatID>3967</FormatID>
+      <FormatName>Kodak DCS RAW Image</FormatName>
+      <FormatVersion> </FormatVersion>
+      <FormatAliases> </FormatAliases>
+      <FormatFamilies> </FormatFamilies>
+      <FormatTypes>Image (Raster)</FormatTypes>
+      <FormatDisclosure> </FormatDisclosure>
+      <FormatDescription>A Kodak DCS RAW image is a digital camera raw file from Kodak's Digital Camera System (DCS) series, saved in a proprietary format based on the Tagged Image File Format (TIFF). These files contain uncompressed, unprocessed image data.</FormatDescription>
+      <BinaryFileFormat> </BinaryFileFormat>
+      <ByteOrders> </ByteOrders>
+      <ReleaseDate> </ReleaseDate>
+      <WithdrawnDate> </WithdrawnDate>
+      <ProvenanceSourceID>299</ProvenanceSourceID>
+      <ProvenanceName>Brigham Young University / Brigham Young University</ProvenanceName>
+      <ProvenanceSourceDate>04 Dec 2025</ProvenanceSourceDate>
+      <ProvenanceDescription>v.122: new signature. Submitted by Brigham Young University; v. 123: New extension added of .tiff and priority over fmt/192 Kodak Digital Camera Raw Image File. Submitted by Richard Lehane and Brigham Young University; v.125: Added prioity over fmt/353 Tagged Image File Format. Submitted by Richard Lehane, Preservica and Brigham Young University.</ProvenanceDescription>
+      <LastUpdatedDate>02 Sep 2026</LastUpdatedDate>
+      <FileFormatIdentifier>
+        <Identifier>fmt/2090</Identifier>
+        <IdentifierType>PUID</IdentifierType>
+      </FileFormatIdentifier>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>tif</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <ExternalSignature>
+        <ExternalSignatureID> </ExternalSignatureID>
+        <Signature>tiff</Signature>
+        <SignatureType>File extension</SignatureType>
+      </ExternalSignature>
+      <InternalSignature>
+        <SignatureID>3453</SignatureID>
+        <SignatureName>Kodak DCS RAW Image</SignatureName>
+        <SignatureNote>Absolute from beginning of file, magic bytes: MM.*{60}This image file was created by a Kodak DCS{5}digital camera.</SignatureNote>
+        <ByteSequence>
+          <ByteSequenceID>3847</ByteSequenceID>
+          <PositionType>Absolute from BOF</PositionType>
+          <Offset>0</Offset>
+          <MaxOffset>0</MaxOffset>
+          <IndirectOffsetLocation> </IndirectOffsetLocation>
+          <IndirectOffsetLength> </IndirectOffsetLength>
+          <Endianness> </Endianness>
+          <ByteSequenceValue>4D4D002A{60}5468697320696D6167652066696C652077617320637265617465642062792061204B6F64616B20444353{5}6469676974616C2063616D6572612E</ByteSequenceValue>
+        </ByteSequence>
+      </InternalSignature>
+      <RelatedFormat>
+        <RelationshipType>Has priority over</RelationshipType>
+        <RelatedFormatID>917</RelatedFormatID>
+        <RelatedFormatName>Kodak Digital Camera Raw Image File</RelatedFormatName>
+        <RelatedFormatVersion> </RelatedFormatVersion>
+      </RelatedFormat>
+      <RelatedFormat>
+        <RelationshipType>Has priority over</RelationshipType>
+        <RelatedFormatID>1099</RelatedFormatID>
+        <RelatedFormatName>Tagged Image File Format</RelatedFormatName>
+        <RelatedFormatVersion> </RelatedFormatVersion>
+      </RelatedFormat>
+    </FileFormat>
+  </report_format_detail>
+</PRONOM-Report>
