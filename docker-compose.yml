@@ -1,0 +1,23 @@
+services:
+  aeterna-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: aeterna-rag-api:latest
+    container_name: aeterna-rag-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  aeterna-db:

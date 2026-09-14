@@ -18,12 +18,45 @@ Produces:
 import json
 import sqlite3
 
+# Path to the raw PRONOM format-identity export (puid, name, mime, ext).
 PRONOM_JSON = "data/pronom_formats.json"
+
+# Path to the PRONOM lifecycle export (release/withdrawn dates,
+# is_superseded flag, and related-format relationships), keyed by puid.
 PRONOM_LIFECYCLE_JSON = "data/pronom_lifecycle.json"
+
+# Path to the Library of Congress format-sustainability export.
 LOC_JSON = "data/loc_formats.json"
-DB_PATH = "format_lookup.sqlite3"
+
+# Output SQLite database path. build() drops and recreates all tables
+# here on every run, so this is fully regenerated, not incrementally
+# updated.
+DB_PATH = "db/format_lookup.sqlite3"
+
 
 def build():
+    """
+    Rebuild the Aeterna file-format lookup database from scratch.
+
+    Drops and recreates all four tables (formats, extensions,
+    format_relationships, loc_formats), then:
+      1. Seeds `formats`, `extensions`, and `format_relationships` from
+         PRONOM_JSON, joined against PRONOM_LIFECYCLE_JSON for
+         release/withdrawn dates and supersession info.
+      2. Seeds `loc_formats` from LOC_JSON, and cross-references it
+         into `formats.loc_id` (or, for LoC entries with no PRONOM
+         match, inserts a synthetic `loc:<id>` row into `formats` so
+         the format is still lookupable by extension).
+      3. Prints row counts as a basic build sanity check.
+
+    Side effects:
+        Overwrites the database file at DB_PATH.
+
+    Raises:
+        Propagates any exception from reading the input JSON files
+        (e.g. FileNotFoundError if they haven't been generated/placed
+        yet) or from the SQLite operations.
+    """
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
@@ -190,6 +223,12 @@ def build():
             )
 
         if not records.get("pronom_puids"):
+            # This LoC format has no matching PRONOM entry at all, so
+            # there's no puid to cross-reference into `formats`. Give
+            # it a synthetic puid ("loc:<id>") and insert a minimal
+            # `formats` row + its extensions directly, so the format
+            # is still reachable via lookup_by_extension() even though
+            # it only exists in the LoC dataset.
             synthetic_puid = f"loc:{loc_id}"
             cursor.execute(
                 "INSERT OR IGNORE INTO formats "
@@ -232,7 +271,33 @@ def build():
 
 
 def lookup_by_extension(ext: str):
-    """Example query function: what your upload handler would call."""
+    """
+    Look up all known formats matching a file extension.
+
+    This is the query used by the live scoring pipeline (called from
+    services.data_pipeline.get_system_data) — the DB itself must
+    already exist (built ahead of time via build()).
+
+    Args:
+        ext: File extension to look up. Leading dot and case are
+            normalized automatically (".PNG", "png", and ".png" are
+            all equivalent).
+
+    Returns:
+        A list of dict rows (one per matching format), each with:
+            puid, name, mime_type, has_binary_signature,
+            release_date, withdrawn_date, is_superseded,
+            disclosure, adoption, licensing_and_patents,
+            external_dependencies, technical_protection
+        Ordered so that non-superseded formats (is_superseded=0) come
+        first — callers should treat the first row as the
+        authoritative match when multiple rows are returned. Returns
+        an empty list if no format matches the extension.
+
+    Raises:
+        Propagates any sqlite3 error (e.g. if DB_PATH doesn't exist
+        because build() hasn't been run yet).
+    """
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -246,6 +311,7 @@ def lookup_by_extension(ext: str):
         JOIN formats f ON e.puid = f.puid
         LEFT JOIN loc_formats l ON f.loc_id = l.id
         WHERE e.extension = ?
+        ORDER BY f.is_superseded ASC
         """,
         (ext.lower().lstrip(".") ,),
     )
@@ -255,7 +321,30 @@ def lookup_by_extension(ext: str):
 
 
 def get_relationships(puid: str):
-    """Fetch known relationships (e.g. supersession) for a given PUID."""
+    """
+    Fetch known relationships (e.g. supersession, migration paths) for
+    a given PUID.
+
+    Not currently called by the live scoring pipeline (see
+    services.data_pipeline.get_system_data) — available for future
+    use or manual inspection of the `format_relationships` table
+    populated by build().
+
+    Args:
+        puid: The PRONOM format identifier to look up relationships
+            for (e.g. "fmt/13").
+
+    Returns:
+        A list of dict rows, each with:
+            relationship_type, related_puid, related_format_name,
+            related_format_version
+        Returns an empty list if the PUID has no recorded
+        relationships.
+
+    Raises:
+        Propagates any sqlite3 error (e.g. if DB_PATH doesn't exist
+        because build() hasn't been run yet).
+    """
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
