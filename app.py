@@ -26,6 +26,7 @@ import time
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 from services.llm_inference import run_inference
+from services.cache import get_cached_score, cache_score
 
 # --------------------------------------------------------------------------
 # App setup
@@ -158,6 +159,10 @@ def score_file():
 
     result_text = None
     try:
+        cached_response = get_cached_score(file_path)
+        if cached_response is not None:
+            return jsonify(cached_response)
+
         result_text = run_inference(file_path)
 
         # The LLM is instructed to emit "<json>\n---\n<markdown summary>".
@@ -167,6 +172,13 @@ def score_file():
         score_data = json.loads(raw_json)
 
         summary = parts[1].strip() if len(parts) > 1 else ""
+
+        results = {
+            "json": score_data,
+            "summary": summary
+        }
+
+        cache_score(file_path, results)
 
         return jsonify({
             "json": score_data,
