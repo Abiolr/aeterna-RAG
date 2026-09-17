@@ -48,7 +48,7 @@ _START_TIME = time.time()
 # Environment variables the service depends on at runtime. Used by
 # /health to report whether the deployment is fully configured, without
 # ever exposing the actual values (secrets) in the response.
-REQUIRED_ENV_VARS = ["ANTHROPIC_API_KEY"]
+REQUIRED_ENV_VARS = ["ANTHROPIC_API_KEY", "REDIS_URL"]
 
 
 def _get_uptime_seconds() -> float:
