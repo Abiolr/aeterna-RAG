@@ -21,9 +21,9 @@ sustainability documentation) and has an LLM reason over that evidence to
 produce an explainable, evidence-cited score.
 
 This project exists as a personal learning vehicle — a deliberate way to go
-deeper on Python, LLMs, RAG architecture, SQLite, ChromaDB, and vector
-databases — rather than as a production system or a direct integration with
-the original hackathon codebase.
+deeper on Python, LLMs, RAG architecture, SQLite, ChromaDB, vector
+databases, and production deployment — rather than as a production system
+or a direct integration with the original hackathon codebase.
 
 ## The scoring framework
 
@@ -51,39 +51,44 @@ the moment a score comes back:
 
 1. **Upload** — `POST /score` receives a file over `multipart/form-data`
    and saves it to a temp folder.
-2. **Extract metadata** — `services/file_extraction.py` runs the file
+2. **Check the cache** — `services/cache.py` hashes the uploaded file
+   (SHA-256) and checks Redis for a previously computed score under that
+   hash. On a hit, the cached `{json, summary}` result is returned
+   immediately and the rest of the pipeline is skipped.
+3. **Extract metadata** — `services/file_extraction.py` runs the file
    through ExifTool to pull out whatever embedded metadata exists (title,
    author, timestamps, technical details), and figures out the file's
    extension.
-3. **Look up the format** — `services/build_lookup_db.py` takes that
+4. **Look up the format** — `services/build_lookup_db.py` takes that
    extension and searches a local SQLite database, pre-built from PRONOM
    (the UK National Archives' format registry) and Library of Congress
    format data. This returns hard facts about the format: whether it's
    open or proprietary, whether it's been superseded, and any known
    release/withdrawal dates.
-4. **Find similar formats** — `services/vector_db_setup.py` takes a short
+5. **Find similar formats** — `services/vector_db_setup.py` takes a short
    natural-language question ("is .png a strong, sustainable file
    format?") and searches a vector database (ChromaDB) of Library of
    Congress sustainability write-ups, pulling back documents about
    comparable formats. This gives the LLM extra context to reason with —
    it's not used to identify the file itself, just to add comparative
    grounding.
-5. **Assemble the context** — `services/data_pipeline.py` bundles the
+6. **Assemble the context** — `services/data_pipeline.py` bundles the
    ExifTool metadata, the SQLite lookup results, and the vector search
    results into one package.
-6. **Build the prompt** — `services/system_prompt.py` takes that package
+7. **Build the prompt** — `services/system_prompt.py` takes that package
    and turns it into a detailed instruction set for the LLM: the scoring
    formula, the five sub-scores and how to compute each one, and strict
    rules against inventing information that isn't in the retrieved data.
-7. **Score it** — `services/llm_inference.py` sends that prompt to the
+8. **Score it** — `services/llm_inference.py` sends that prompt to the
    Anthropic API (`claude-haiku-4-5-20251001`), which returns a JSON
    object with the five sub-scores (each backed by cited evidence), the
    final survivability score, and a plain-language explanation.
-8. **Return the result** — `app.py` parses that response into JSON plus a
-   markdown summary and sends it back to the caller. If anything fails
-   along the way, the client gets a generic error message — the real
-   error (stack trace, raw LLM output, etc.) is only ever logged
-   server-side, never exposed over the API.
+9. **Cache and return the result** — `app.py` parses that response into
+   JSON plus a markdown summary, writes it to Redis (keyed by file hash,
+   7-day TTL) via `cache_score`, and sends it back to the caller. If
+   anything fails along the way, the client gets a generic error message
+   — the real error (stack trace, raw LLM output, etc.) is only ever
+   logged server-side, never exposed over the API.
 
 ## Tech stack
 
@@ -95,9 +100,15 @@ the moment a score comes back:
 | Vector store | ChromaDB (persistent client) | Seeded with Library of Congress format-sustainability documents |
 | Embeddings | `all-MiniLM-L6-v2` (sentence-transformers) | Runs locally — embeds both the seeded LoC documents and incoming queries |
 | Structured lookup DB | SQLite (raw SQL, no ORM) | Built once from PRONOM + LoC exports; dataset is static/write-once, so no ORM/migrations layer is used |
+| Cache | Redis | Caches `/score` results by SHA-256 file hash, 7-day TTL (`services/cache.py`); avoids re-running the full pipeline (ExifTool + SQLite + vector search + LLM call) for a file that's already been scored |
 | File metadata extraction | ExifTool, via `pyexiftool` | Requires the ExifTool system binary, not just the Python wrapper |
-| Config | `python-dotenv` | Loads `ANTHROPIC_API_KEY` from `.env` |
-| Containerization | Docker + Docker Compose | `dockerfile` builds the image; `docker-compose.yml` wires up env vars, a read-only `data/` mount, and a named volume for `db/` |
+| Config | `python-dotenv` | Loads `ANTHROPIC_API_KEY`, `REDIS_URL`, etc. from `.env` |
+| Containerization | Docker + Docker Compose | `dockerfile` builds the image; `docker-compose.yml` wires up env vars, a read-only `data/` mount, Redis, Nginx, and Certbot |
+| Reverse proxy / TLS | Nginx + Certbot | Nginx terminates HTTPS and proxies to the API container; Certbot manages Let's Encrypt certificate issuance/renewal |
+| Hosting | AWS EC2 (Elastic IP) | Long-lived public IP for the instance |
+| DNS | DuckDNS | Public hostname: `aeterna-api.duckdns.org` |
+| Image registry | Docker Hub | `abiolar/aeterna-rag-api` |
+| CI/CD | GitHub Actions | Builds and pushes the image on every push to `main`, then deploys to EC2 over SSH (see [Deployment](#deployment-production) below) |
 | Data sources | PRONOM registry, Library of Congress Sustainability of Digital Formats | See `data/` and `raw_xml/` |
 
 **Deliberately not used:** LangChain — the RAG pipeline (retrieval, prompt
@@ -112,6 +123,7 @@ dataset is static and doesn't need a full relational server.
 - Python 3.11+
 - [ExifTool](https://exiftool.org/) (system binary, not just the
   Python wrapper)
+- Redis (local or containerized — see `docker-compose.yml`)
 - An Anthropic API key
 - PRONOM / Library of Congress export JSON files (see
   `services/build_lookup_db.py` and `services/vector_db_setup.py`
@@ -142,6 +154,7 @@ Create a `.env` file in the project root:
 
 ```
 ANTHROPIC_API_KEY=your-key-here
+REDIS_URL=redis://localhost:6379
 ```
 
 Build the format lookup DB and seed the vector store (one-time,
@@ -166,7 +179,7 @@ The service listens on `http://localhost:3000`.
 |--------|-----------|------------------------------------------------|
 | GET    | `/`       | Basic service identity check                   |
 | GET    | `/health` | Liveness/readiness probe (env var presence, uptime) |
-| POST   | `/score`  | Upload a file (`multipart/form-data`, field `file`) and get its survivability score |
+| POST   | `/score`  | Upload a file (`multipart/form-data`, field `file`) and get its survivability score. Results are cached in Redis by file hash (7-day TTL) — a repeat upload of the same file skips the pipeline entirely. |
 
 Example:
 
@@ -214,12 +227,22 @@ docker compose down
 
 Before running, make sure you have:
 
-- A `.env` file in the project root with `ANTHROPIC_API_KEY` set
-  (referenced by `docker-compose.yml` via `env_file`).
+- A `.env` file in the project root with `ANTHROPIC_API_KEY`,
+  `REDIS_URL`, and `REDIS_PASSWORD` set (referenced by
+  `docker-compose.yml` via `env_file`).
 - A `data/` directory containing the PRONOM/LoC export JSON files
   expected by `services/build_lookup_db.py` and
   `services/vector_db_setup.py`. It's mounted read-only into the
   container.
+
+`docker-compose.yml` brings up four services:
+
+| Service | Role |
+|---------|------|
+| `aeterna-api` | The Flask/gunicorn app itself |
+| `redis` | Score cache, password-protected via `REDIS_PASSWORD`, persisted to a named volume (`redis-data`) |
+| `nginx` | Reverse proxy — terminates HTTPS on 80/443 and forwards to `aeterna-api` on its internal port | 
+| `certbot` | Issues and renews the Let's Encrypt TLS certificate Nginx uses |
 
 The SQLite lookup DB and Chroma vector store live under `/app/db`
 inside the container, backed by the `aeterna-db` named volume, so
@@ -231,6 +254,88 @@ one-off job) to populate them:
 docker compose exec aeterna-api python services/build_lookup_db.py
 docker compose exec aeterna-api python services/vector_db_setup.py
 ```
+
+## Deployment (production)
+
+Aeterna is deployed on a single **AWS EC2** instance with an **Elastic IP**
+(so the public address survives instance stops/restarts), fronted by
+**Nginx** for TLS termination and reverse-proxying, with certificates
+issued and renewed by **Certbot**. Public DNS is handled by **DuckDNS**,
+resolving to:
+
+**https://aeterna-api.duckdns.org**
+
+### CI/CD
+
+Every push to `main` triggers a **GitHub Actions** workflow that:
+
+1. Builds the Docker image and pushes it to **Docker Hub**
+   (`abiolar/aeterna-rag-api:latest`).
+2. Copies the current `docker-compose.yml` and `nginx/default.conf` to
+   the EC2 instance over SCP.
+3. SSHes into the EC2 instance and runs `docker compose pull` followed
+   by `docker compose up -d`, then restarts the `nginx` container to
+   pick up any config changes.
+
+```yaml
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/aeterna-rag-api:latest
+
+      - name: Copy compose and nginx config to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.yml,nginx/default.conf"
+          target: "~/"
+          strip_components: 0
+
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~
+            docker compose pull
+            docker compose up -d
+            docker compose restart nginx
+```
+
+This means deploys are just `git push` — no manual SSH or Docker
+commands required for a routine update. The EC2 host only needs
+`docker-compose.yml` and `nginx/default.conf`; the application image
+itself is always pulled fresh from Docker Hub.
+
+**Required GitHub Actions secrets:** `DOCKERHUB_USERNAME`,
+`DOCKERHUB_TOKEN`, `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`.
 
 ## Error handling
 
@@ -264,12 +369,15 @@ code (400 for bad requests, 500 for processing failures).
 ├── app.py                    # Flask entrypoint
 ├── services/
 │   ├── __init__.py
+│   ├── cache.py               # Redis-backed score cache (SHA-256 file hash, 7-day TTL)
 │   ├── file_extraction.py    # ExifTool metadata + extension helpers
 │   ├── build_lookup_db.py    # PRONOM/LoC SQLite lookup DB build + query
 │   ├── vector_db_setup.py    # Chroma vector store setup + query
 │   ├── data_pipeline.py      # Aggregates context for one file
 │   ├── system_prompt.py      # Builds the LLM scoring prompt
 │   └── llm_inference.py      # Calls the Anthropic API
+├── nginx/
+│   └── default.conf          # Nginx reverse-proxy + TLS config
 ├── data/                     # PRONOM/LoC export JSON (build_lookup_db.py, vector_db_setup.py inputs)
 ├── db/                       # Generated on build — not committed
 │   ├── format_lookup.sqlite3 # SQLite lookup DB (build_lookup_db.py output)
@@ -277,6 +385,9 @@ code (400 for bad requests, 500 for processing failures).
 ├── raw_xml/                  # Raw PRONOM/LoC source XML, pre-JSON-conversion
 ├── temp_uploads/             # Scratch space for in-flight /score uploads, cleaned up per-request
 ├── test_files/                # Sample files for manually exercising /score
+├── .github/
+│   └── workflows/
+│       └── deploy.yml         # CI/CD: build + push image, deploy to EC2
 ├── dockerfile
 ├── docker-compose.yml
 ├── .dockerignore
