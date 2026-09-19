@@ -11,7 +11,7 @@ from anthropic import Anthropic
 from services.system_prompt import system_prompt
 from services.data_pipeline import get_system_data
 
-load_dotenv()
+load_dotenv(override=True)
 api_key = os.getenv("ANTHROPIC_API_KEY")
 
 
