@@ -10,9 +10,6 @@ services:
     env_file:
       - .env
 
-    volumes:
-      - ./data:/app/data:ro
-
     depends_on:
       redis:
         condition: service_healthy
