@@ -43,7 +43,25 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e
             cd ~
+
+            echo "Disk before cleanup:"
+            df -h /
+
+            docker container prune -f
+            docker image prune -f
+            docker builder prune -f
+
+            # Pull new image and restart
             docker compose pull
             docker compose up -d
             docker compose restart nginx
+
+            docker image prune -af
+            docker container prune -f
+            docker builder prune -f
+
+            echo "Disk after cleanup:"
+            df -h /
+            docker system df
