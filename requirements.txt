@@ -63,6 +63,8 @@ overrides==7.7.0
 packaging==26.3
 propcache==0.5.2
 protobuf==7.36.1
+psycopg==3.3.6
+psycopg-binary==3.3.6
 pybase64==1.5.0
 pydantic==2.13.5
 pydantic-settings==2.15.0

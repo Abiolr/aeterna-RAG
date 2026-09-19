@@ -43,7 +43,6 @@ ENV PATH=/opt/venv/bin:$PATH
 COPY . .
 
 RUN mkdir -p /app/db \
-    && python services/build_lookup_db.py \
     && python services/vector_db_setup.py
 
 RUN useradd --create-home --shell /bin/bash aeterna \

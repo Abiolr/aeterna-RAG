@@ -12,6 +12,5 @@ README.md
 raw_xml/
 db/
 test_files/
-nginx/
 docker-compose.dev.yml
 docker-compose.yml
