@@ -5,8 +5,6 @@ Pre-deploy smoke tests
 import sys
 from unittest.mock import MagicMock
 
-import pytest
-
 sys.modules["services.auth"] = MagicMock()
 sys.modules["services.llm_inference"] = MagicMock()
 sys.modules["services.cache"] = MagicMock()
@@ -20,13 +18,14 @@ from app import app
 
 def test_root_ok():
     client = app.test_client()
-
     assert client.get("/").status_code == 200
+
 
 def test_health_ok(monkeypatch):
     import services.auth as auth
     import services.cache as cache
 
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
     monkeypatch.setenv("POSTGRES_URL", "postgresql://test")
     monkeypatch.setenv("REDIS_URL", "redis://test")
 
@@ -37,6 +36,7 @@ def test_health_ok(monkeypatch):
     response = client.get("/health")
 
     assert response.status_code == 200
+
 
 def test_generate_key_ok():
     import services.auth as auth
@@ -64,7 +64,6 @@ def test_generate_key_rate_limited():
 
 def test_score_missing_api_key():
     client = app.test_client()
-
     resp = client.post("/score")
 
     assert resp.status_code == 401
