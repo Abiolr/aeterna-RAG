@@ -4,6 +4,7 @@ Pre-deploy smoke tests
 
 import sys
 from unittest.mock import MagicMock
+
 import pytest
 
 sys.modules["services.auth"] = MagicMock()
@@ -17,14 +18,23 @@ sys.modules["psycopg2"] = MagicMock()
 
 from app import app
 
+
 def test_root_ok():
     client = app.test_client()
+
     assert client.get("/").status_code == 200
 
 
 def test_health_ok():
+    import psycopg2
+
+    # Simulate a successful PostgreSQL connection.
+    psycopg2.connect.return_value = MagicMock()
+
     client = app.test_client()
-    assert client.get("/health").status_code == 200
+    response = client.get("/health")
+
+    assert response.status_code == 200
 
 
 def test_generate_key_ok():
@@ -36,49 +46,70 @@ def test_generate_key_ok():
 
     client = app.test_client()
     resp = client.post("/generate-key")
+
     assert resp.status_code == 201
+
 
 def test_generate_key_rate_limited():
     import services.cache as cache
+
     cache.check_rate_limit.return_value = (False, 0)
 
     client = app.test_client()
     resp = client.post("/generate-key")
+
     assert resp.status_code == 429
 
 
 def test_score_missing_api_key():
     client = app.test_client()
+
     resp = client.post("/score")
+
     assert resp.status_code == 401
 
 
 def test_score_invalid_api_key():
     import services.auth as auth
+
     auth.is_valid_api_key.return_value = False
 
     client = app.test_client()
-    resp = client.post("/score", headers={"X-API-Key": "atna_bogus"})
+    resp = client.post(
+        "/score",
+        headers={"X-API-Key": "atna_bogus"},
+    )
+
     assert resp.status_code == 401
 
 
 def test_score_no_file():
     import services.auth as auth
     import services.cache as cache
+
     auth.is_valid_api_key.return_value = True
     cache.check_rate_limit.return_value = (True, 59)
 
     client = app.test_client()
-    resp = client.post("/score", headers={"X-API-Key": "atna_ok"})
+    resp = client.post(
+        "/score",
+        headers={"X-API-Key": "atna_ok"},
+    )
+
     assert resp.status_code == 400
 
 
 def test_score_rate_limited():
     import services.auth as auth
     import services.cache as cache
+
     auth.is_valid_api_key.return_value = True
     cache.check_rate_limit.return_value = (False, 0)
 
     client = app.test_client()
-    resp = client.post("/score", headers={"X-API-Key": "atna_ok"})
+    resp = client.post(
+        "/score",
+        headers={"X-API-Key": "atna_ok"},
+    )
+
     assert resp.status_code == 429
