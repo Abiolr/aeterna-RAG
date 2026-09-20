@@ -14,7 +14,6 @@ sys.modules["services.data_pipeline"] = MagicMock()
 sys.modules["services.system_prompt"] = MagicMock()
 sys.modules["anthropic"] = MagicMock()
 sys.modules["redis"] = MagicMock()
-sys.modules["psycopg2"] = MagicMock()
 
 from app import app
 
@@ -24,18 +23,20 @@ def test_root_ok():
 
     assert client.get("/").status_code == 200
 
+def test_health_ok(monkeypatch):
+    import services.auth as auth
+    import services.cache as cache
 
-def test_health_ok():
-    import psycopg2
+    monkeypatch.setenv("POSTGRES_URL", "postgresql://test")
+    monkeypatch.setenv("REDIS_URL", "redis://test")
 
-    # Simulate a successful PostgreSQL connection.
-    psycopg2.connect.return_value = MagicMock()
+    auth.check_postgres_connection.return_value = True
+    cache.check_redis_connection.return_value = True
 
     client = app.test_client()
     response = client.get("/health")
 
     assert response.status_code == 200
-
 
 def test_generate_key_ok():
     import services.auth as auth
