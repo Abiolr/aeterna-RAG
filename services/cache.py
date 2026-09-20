@@ -1,13 +1,32 @@
 import os
 import json
 import hashlib
+
 from dotenv import load_dotenv
 from redis import Redis
 
 load_dotenv(override=True)
 
 REDIS_URL = os.getenv("REDIS_URL")
-r = Redis.from_url(REDIS_URL, decode_responses=True)
+
+if not REDIS_URL:
+    raise RuntimeError(
+        "REDIS_URL is not set. Add it to your .env file or environment."
+    )
+
+r = Redis.from_url(
+    REDIS_URL,
+    decode_responses=True,
+)
+
+
+def check_redis_connection():
+    """Return True if Redis is reachable and responds to PING."""
+    try:
+        return r.ping()
+
+    except Exception:
+        return False
 
 
 def get_cached_score(file_path):
@@ -15,6 +34,7 @@ def get_cached_score(file_path):
         file_hash = hashlib.sha256(f.read()).hexdigest()
 
     cached = r.get(f"score:{file_hash}")
+
     return json.loads(cached) if cached else None
 
 
@@ -36,6 +56,7 @@ def check_rate_limit(identifier, limit, window_seconds, prefix):
     Returns:
         (allowed, remaining)
     """
+
     key = f"rate:{prefix}:{identifier}"
 
     count = r.incr(key)

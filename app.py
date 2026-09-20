@@ -2,6 +2,7 @@
 Aeterna RAG API — Flask entrypoint.
 
 Exposes four HTTP endpoints:
+
     GET  /            - basic service identity/info
     GET  /health      - liveness/readiness probe
     POST /generate-key - generate a new API key (IP-rate-limited)
@@ -9,11 +10,11 @@ Exposes four HTTP endpoints:
                        per API key.
 
 API authentication:
+
     Clients must provide:
         X-API-Key: atna_<key>
 
 API keys are generated with cryptographically secure randomness and only
-
 their SHA-256 hashes are stored in PostgreSQL.
 """
 
@@ -25,27 +26,43 @@ import time
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 
-from services.auth import generate_api_key, is_valid_api_key, _hash_api_key
+from services.auth import (
+    generate_api_key,
+    is_valid_api_key,
+    _hash_api_key,
+    check_postgres_connection,
+)
+
 from services.llm_inference import run_inference
+
 from services.cache import (
     get_cached_score,
     cache_score,
     check_rate_limit,
+    check_redis_connection,
 )
+
 
 # --------------------------------------------------------------------------
 # App setup
 # --------------------------------------------------------------------------
 
 app = Flask(__name__)
+
 app.config["UPLOAD_FOLDER"] = "temp_uploads"
+
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 logger = logging.getLogger("aeterna")
 
 _START_TIME = time.time()
 
-REQUIRED_ENV_VARS = ["ANTHROPIC_API_KEY", "REDIS_URL", "POSTGRES_URL"]
+REQUIRED_ENV_VARS = [
+    "ANTHROPIC_API_KEY",
+    "REDIS_URL",
+    "POSTGRES_URL",
+]
+
 
 # --------------------------------------------------------------------------
 # Rate-limit configuration
@@ -60,12 +77,19 @@ KEYGEN_RATE_LIMIT = int(os.getenv("KEYGEN_RATE_LIMIT", "3"))
 KEYGEN_RATE_WINDOW = int(os.getenv("KEYGEN_RATE_WINDOW", "3600"))
 
 
+# --------------------------------------------------------------------------
+# Helpers
+# --------------------------------------------------------------------------
+
 def _get_uptime_seconds() -> float:
     return round(time.time() - _START_TIME, 2)
 
 
 def _get_env_status() -> dict:
-    return {name: bool(os.getenv(name)) for name in REQUIRED_ENV_VARS}
+    return {
+        name: bool(os.getenv(name))
+        for name in REQUIRED_ENV_VARS
+    }
 
 
 def _get_client_ip():
@@ -76,7 +100,11 @@ def _get_client_ip():
     X-Real-IP. We only fall back to Flask's remote_addr; we do not trust an
     arbitrary X-Forwarded-For header supplied directly by clients.
     """
-    return request.headers.get("X-Real-IP") or request.remote_addr or "unknown"
+    return (
+        request.headers.get("X-Real-IP")
+        or request.remote_addr
+        or "unknown"
+    )
 
 
 # --------------------------------------------------------------------------
@@ -94,14 +122,72 @@ def root():
 
 @app.route("/health", methods=["GET"])
 def healthcheck():
-    env_status = _get_env_status()
-    all_present = all(env_status.values())
+    """
+    Check API readiness and required infrastructure dependencies.
 
-    return jsonify({
-        "status": "healthy" if all_present else "degraded",
+    PostgreSQL:
+        Executes SELECT 1 against the configured PostgreSQL database.
+
+    Redis:
+        Executes PING against the configured Redis instance.
+
+    Environment variables:
+        Checks that all required environment variables are present.
+
+    Returns:
+        200 if all required dependencies are healthy.
+        503 if any required dependency is unavailable.
+    """
+
+    env_status = _get_env_status()
+
+    # ----------------------------------------------------------------------
+    # PostgreSQL healthcheck
+    # ----------------------------------------------------------------------
+
+    postgres_healthy = False
+
+    if env_status["POSTGRES_URL"]:
+        try:
+            postgres_healthy = check_postgres_connection()
+        except Exception:
+            logger.exception("PostgreSQL healthcheck failed.")
+
+    # ----------------------------------------------------------------------
+    # Redis healthcheck
+    # ----------------------------------------------------------------------
+
+    redis_healthy = False
+
+    if env_status["REDIS_URL"]:
+        try:
+            redis_healthy = check_redis_connection()
+        except Exception:
+            logger.exception("Redis healthcheck failed.")
+
+    # ----------------------------------------------------------------------
+    # Determine overall health
+    # ----------------------------------------------------------------------
+
+    dependencies = {
+        "postgres": "healthy" if postgres_healthy else "unhealthy",
+        "redis": "healthy" if redis_healthy else "unhealthy",
+    }
+
+    all_healthy = (
+        all(env_status.values())
+        and postgres_healthy
+        and redis_healthy
+    )
+
+    response = {
+        "status": "healthy" if all_healthy else "degraded",
         "uptime": _get_uptime_seconds(),
         "environment": env_status,
-    }), 200
+        "dependencies": dependencies,
+    }
+
+    return jsonify(response), 200 if all_healthy else 503
 
 
 @app.route("/generate-key", methods=["POST"])
@@ -112,6 +198,7 @@ def create_api_key():
     No existing API key is required. To reduce abuse, key generation is
     rate-limited by client IP using Redis.
     """
+
     client_ip = _get_client_ip()
 
     try:
@@ -124,21 +211,29 @@ def create_api_key():
 
         if not allowed:
             return jsonify({
-                "error": "Too many API keys generated. Please try again later."
+                "error": (
+                    "Too many API keys generated. "
+                    "Please try again later."
+                )
             }), 429
 
         api_key = generate_api_key()
 
         response = jsonify({
             "api_key": api_key,
-            "message": "Store this API key securely. It will not be shown again.",
+            "message": (
+                "Store this API key securely. "
+                "It will not be shown again."
+            ),
         })
+
         response.headers["X-RateLimit-Remaining"] = str(remaining)
 
         return response, 201
 
     except Exception:
         logger.exception("Failed to generate API key.")
+
         return jsonify({
             "error": "Unable to generate API key."
         }), 500
@@ -155,6 +250,7 @@ def score_file():
     Rate limit:
         SCORE_RATE_LIMIT requests per SCORE_RATE_WINDOW seconds per API key.
     """
+
     api_key = request.headers.get("X-API-Key")
 
     if not api_key:
@@ -162,16 +258,26 @@ def score_file():
             "error": "API key required."
         }), 401
 
+    # ----------------------------------------------------------------------
+    # API key authentication
+    # ----------------------------------------------------------------------
+
     try:
         if not is_valid_api_key(api_key):
             return jsonify({
                 "error": "Invalid API key."
             }), 401
+
     except Exception:
         logger.exception("API key validation failed.")
+
         return jsonify({
             "error": "Unable to authenticate request."
         }), 500
+
+    # ----------------------------------------------------------------------
+    # Rate limiting
+    # ----------------------------------------------------------------------
 
     try:
         key_hash = _hash_api_key(api_key)
@@ -187,34 +293,60 @@ def score_file():
             response = jsonify({
                 "error": "Rate limit exceeded. Please try again later."
             })
+
             response.headers["Retry-After"] = str(SCORE_RATE_WINDOW)
             response.headers["X-RateLimit-Remaining"] = "0"
+
             return response, 429
 
     except Exception:
         logger.exception("Rate-limit check failed.")
+
         return jsonify({
             "error": "Unable to process request."
         }), 500
 
+    # ----------------------------------------------------------------------
+    # File validation
+    # ----------------------------------------------------------------------
+
     if "file" not in request.files:
-        return jsonify({"error": "No file key in request"}), 400
+        return jsonify({
+            "error": "No file key in request"
+        }), 400
 
     file = request.files["file"]
+
     if file.filename == "":
-        return jsonify({"error": "No file selected"}), 400
+        return jsonify({
+            "error": "No file selected"
+        }), 400
 
     filename = secure_filename(file.filename)
-    file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+
+    file_path = os.path.join(
+        app.config["UPLOAD_FOLDER"],
+        filename,
+    )
+
     file.save(file_path)
 
     result_text = None
 
+    # ----------------------------------------------------------------------
+    # Scoring
+    # ----------------------------------------------------------------------
+
     try:
         cached_response = get_cached_score(file_path)
+
         if cached_response is not None:
             response = jsonify(cached_response)
-            response.headers["X-RateLimit-Remaining"] = str(remaining)
+
+            response.headers["X-RateLimit-Remaining"] = str(
+                remaining
+            )
+
             return response, 200
 
         result_text = run_inference(file_path)
@@ -230,7 +362,12 @@ def score_file():
         )
 
         score_data = json.loads(raw_json)
-        summary = parts[1].strip() if len(parts) > 1 else ""
+
+        summary = (
+            parts[1].strip()
+            if len(parts) > 1
+            else ""
+        )
 
         results = {
             "json": score_data,
@@ -240,16 +377,21 @@ def score_file():
         cache_score(file_path, results)
 
         response = jsonify(results)
-        response.headers["X-RateLimit-Remaining"] = str(remaining)
+
+        response.headers["X-RateLimit-Remaining"] = str(
+            remaining
+        )
 
         return response, 200
 
     except json.JSONDecodeError:
         logger.exception(
-            "Failed to parse LLM JSON output for file '%s'. Raw output: %r",
+            "Failed to parse LLM JSON output for file '%s'. "
+            "Raw output: %r",
             filename,
             result_text,
         )
+
         return jsonify({
             "error": "Failed to process file. Please try again."
         }), 500
@@ -259,14 +401,19 @@ def score_file():
             "Unexpected error while scoring file '%s'.",
             filename,
         )
+
         return jsonify({
-            "error": "An internal error occurred while processing the file."
+            "error": (
+                "An internal error occurred while processing "
+                "the file."
+            )
         }), 500
 
     finally:
         if os.path.exists(file_path):
             try:
                 os.remove(file_path)
+
             except OSError:
                 logger.exception(
                     "Failed to remove temp upload '%s'.",
@@ -274,6 +421,14 @@ def score_file():
                 )
 
 
+# --------------------------------------------------------------------------
+# Development entrypoint
+# --------------------------------------------------------------------------
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    app.run(debug=False, port=3000)
+
+    app.run(
+        debug=False,
+        port=3000,
+    )

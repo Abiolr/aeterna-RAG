@@ -14,3 +14,4 @@ db/
 test_files/
 docker-compose.dev.yml
 docker-compose.yml
+tests/

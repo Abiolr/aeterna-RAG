@@ -1,6 +1,7 @@
 import os
 import secrets
 import hashlib
+
 import psycopg
 from dotenv import load_dotenv
 
@@ -17,6 +18,23 @@ if not POSTGRES_URL:
 
 def _hash_api_key(api_key):
     return hashlib.sha256(api_key.encode()).hexdigest()
+
+
+def check_postgres_connection():
+    """Return True if PostgreSQL is reachable and accepts a query."""
+    try:
+        with psycopg.connect(
+            POSTGRES_URL,
+            connect_timeout=3,
+        ) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+
+        return True
+
+    except Exception:
+        return False
 
 
 def _add_key_table():
@@ -65,6 +83,7 @@ def is_valid_api_key(api_key):
                 """,
                 (key_hash,),
             )
+
             return cursor.fetchone() is not None
 
 
