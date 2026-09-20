@@ -8,11 +8,14 @@ on:
 
 jobs:
   build-and-deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -55,7 +58,6 @@ jobs:
             docker image prune -f
             docker builder prune -f
 
-            # Pull new image and restart
             docker compose pull
             docker compose up -d
             docker compose restart nginx
