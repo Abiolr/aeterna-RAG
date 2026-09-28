@@ -60,8 +60,11 @@ the moment a score comes back:
 2. **Rate limit** — a fixed-window Redis counter keyed by the hashed API key
    (default 60 requests / 60 s) is checked. Over the limit → `429` with a
    `Retry-After` header.
-3. **Upload** — the file arrives over `multipart/form-data`, its name is
-   sanitized with `secure_filename`, and it is saved to a temp folder.
+3. **Upload** — the file arrives over `multipart/form-data` (FastAPI
+   `UploadFile`). A random filename is generated for it (preserving the
+   original extension), and it is saved under that name to a temp folder —
+   this avoids trusting the client-supplied filename and avoids collisions
+   between concurrent uploads.
 4. **Check the cache** — `services/cache.py` hashes the uploaded file
    (SHA-256) and checks Redis for a previously computed result under that
    hash. On a hit, the cached `{json, summary}` result is returned
@@ -109,7 +112,7 @@ the moment a score comes back:
 | Layer | Choice | Notes |
 |-------|--------|-------|
 | Language | Python 3.11+ | Docker image runs Python 3.13; CI runs 3.11 |
-| Web framework | Flask | Dev server locally; `gunicorn` (2 workers) in Docker |
+| Web framework | FastAPI (Starlette) | `uvicorn --reload` locally; `uvicorn` with 2 worker processes in Docker. Interactive API docs are served at `/docs` |
 | LLM | Anthropic API (`claude-haiku-4-5-20251001`) | Called via the official `anthropic` Python SDK in `services/llm_inference.py` |
 | Vector store | ChromaDB (persistent client) | Seeded with Library of Congress format-sustainability documents; stored on local disk in the container (`db/aeterna_vector_db/`) |
 | Embeddings | `all-MiniLM-L6-v2` (sentence-transformers) | Runs locally (CPU-only torch) — embeds both the seeded LoC documents and incoming queries |
@@ -240,16 +243,18 @@ python services/vector_db_setup.py
 Run the API:
 
 ```bash
-python app.py
+uvicorn app:app --host 0.0.0.0 --port 3000 --reload
 ```
 
-The service listens on `http://localhost:3000`.
+The service listens on `http://localhost:3000`. FastAPI also serves
+interactive API docs at `http://localhost:3000/docs` (Swagger UI) and
+`http://localhost:3000/redoc`.
 
 Run the tests:
 
 ```bash
-pip install pytest
-pytest -q tests/test_endpoints.py
+pip install pytest httpx
+python -m pytest -q tests/test_endpoints.py
 ```
 
 The tests are pre-deploy smoke tests: external dependencies (Postgres, Redis,
@@ -282,10 +287,12 @@ curl -X POST http://localhost:3000/generate-key
 | `/generate-key` | Per client IP | 3 keys / 3600 s | `KEYGEN_RATE_LIMIT`, `KEYGEN_RATE_WINDOW` |
 
 Rate limiting is a fixed-window counter in Redis. The client IP is read from
-`X-Real-IP` (set by Nginx), falling back to the socket address — a
-client-supplied `X-Forwarded-For` is deliberately not trusted. Responses
-include an `X-RateLimit-Remaining` header, and `429`s from `/score` also
-include `Retry-After`.
+`X-Real-IP` (set by Nginx), falling back to the socket peer address
+(`request.client.host`) — a client-supplied `X-Forwarded-For` is deliberately
+not trusted. `X-Real-IP` is only trustworthy when the app is reachable
+exclusively through Nginx; the API container's port should not be exposed
+publicly. Responses include an `X-RateLimit-Remaining` header, and `429`s from
+`/score` also include `Retry-After`.
 
 ## Endpoints
 
@@ -296,8 +303,13 @@ include `Retry-After`.
 | POST   | `/generate-key` | —    | Generate a new API key. Rate-limited per IP. Returns `201`, or `429` when the limit is hit. |
 | POST   | `/score`        | `X-API-Key` | Upload a file (`multipart/form-data`, field `file`) and get its survivability score. Results are cached in Redis by file hash (7-day TTL) — a repeat upload of the same file skips the pipeline entirely. |
 
-`/score` status codes: `200` success, `400` missing/empty file, `401` missing
-or invalid API key, `429` rate limited, `500` processing failure.
+`/score` status codes: `200` success, `401` missing or invalid API key, `422`
+missing `file` field (FastAPI request validation — this is also what a
+client sends when no filename is attached to the file part, since most HTTP
+clients treat an empty filename as an absent field), `429` rate limited,
+`500` processing failure. The route also contains a `400` check for an
+explicitly empty `file.filename`, but it's effectively unreachable through
+standard multipart clients — see [Known limitations](#known-limitations).
 
 Example:
 
@@ -334,8 +346,8 @@ CPU-only `torch` wheel first (to avoid pulling ~3GB of unused CUDA packages),
 then the rest of `requirements.txt`, into a venv. The final stage installs the
 `exiftool` system binary (required by `services/file_extraction.py`), copies
 the app in, **seeds the Chroma vector store at build time**
-(`python services/vector_db_setup.py`), and serves the app with `gunicorn` as a
-non-root user.
+(`python services/vector_db_setup.py`), and serves the app with `uvicorn`
+(2 worker processes, 120 s keep-alive timeout) as a non-root user.
 
 ```bash
 # Build and run
@@ -357,7 +369,7 @@ Before running, make sure you have a `.env` file in the project root with
 
 | Service | Role |
 |---------|------|
-| `aeterna-api` | The Flask/gunicorn app itself (pulled from Docker Hub) |
+| `aeterna-api` | The FastAPI/uvicorn app itself (pulled from Docker Hub) |
 | `redis` | Score cache and rate-limit store, password-protected via `REDIS_PASSWORD`, persisted to a named volume (`redis-data`) |
 | `nginx` | Reverse proxy — terminates HTTPS on 80/443 and forwards to `aeterna-api` on its internal port |
 | `certbot` | Issues and renews the Let's Encrypt TLS certificate Nginx uses |
@@ -396,8 +408,8 @@ Two GitHub Actions workflows gate every deploy:
 
 **1. `tests` (`.github/workflows/tests.yml`)** — runs on every push to `main`
 and on every pull request. It sets up Python 3.11, installs a minimal set of
-dependencies (`flask`, `pytest`, `python-dotenv`), and runs
-`pytest -q tests/test_endpoints.py`.
+dependencies (`fastapi`, `httpx`, `pytest`, `python-dotenv`,
+`python-multipart`), and runs `python -m pytest -q tests/test_endpoints.py`.
 
 **2. `Build and Deploy` (`.github/workflows/deploy.yml`)** — triggered by
 `workflow_run` when the `tests` workflow **completes**, and only proceeds if
@@ -444,6 +456,9 @@ code (400 for bad requests, 401 for auth failures, 429 for rate limits,
 500 for processing failures). Uploaded temp files are removed in a `finally`
 block whether or not scoring succeeds.
 
+Note that request-validation failures (e.g. a missing `file` field) are
+handled by FastAPI itself and return its standard `422` response body.
+
 ## Known limitations
 
 - **`age_lifecycle_health` is frequently null.** PRONOM populates
@@ -460,19 +475,32 @@ block whether or not scoring succeeds.
   the vector search step currently just returns whatever it finds as
   the nearest (possibly irrelevant) semantic neighbors, rather than
   a distance-threshold check or a PRONOM-only rule-based score.
-- **Uploads are saved under the client-supplied (sanitized) filename.**
-  Two concurrent requests uploading files with the same name can collide in
-  `temp_uploads/`, and the extension used for the format lookup comes from
-  that client-supplied name. Content-based format detection isn't used.
+- **The file extension used for the format lookup comes from the
+  client-supplied filename**, not from inspecting file contents. The saved
+  temp filename itself is randomly generated (only the extension is taken
+  from the client), so concurrent uploads no longer collide in
+  `temp_uploads/` — but a mislabeled or absent extension will still cause an
+  incorrect or failed format lookup. Content-based format detection isn't
+  used.
 - **The test suite is smoke-level only.** Every service module is mocked, so
   the tests cover routing, auth, and rate-limit branching in `app.py` but not
   the scoring pipeline, the Postgres queries, or the LLM call.
+- **The `400` empty-filename check in `/score` is effectively dead code.**
+  `file: UploadFile = File(...)` makes the field required, so a request
+  with no `file` part gets `422` from FastAPI before the handler runs at
+  all — the auth check, rate-limit check, and the `file.filename == ""`
+  check are all skipped on that path. Standard multipart clients (browsers,
+  `curl -F`, `httpx`, `requests`) also treat a file part with an empty
+  filename as an absent field, producing the same `422` rather than reaching
+  the `400` branch. Reaching the `400` path requires a client that sends a
+  filename explicitly present but empty, which isn't something normal
+  tooling does.
 
 ## Project structure
 
 ```
 .
-├── app.py                    # Flask entrypoint (/, /health, /generate-key, /score)
+├── app.py                    # FastAPI entrypoint (/, /health, /generate-key, /score)
 ├── services/
 │   ├── __init__.py
 │   ├── auth.py                # API key generation + validation (PostgreSQL, SHA-256 hashed)
