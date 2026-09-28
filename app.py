@@ -1,5 +1,5 @@
 """
-Aeterna RAG API — Flask entrypoint.
+Aeterna RAG API — FastAPI entrypoint.
 
 Exposes four HTTP endpoints:
 
@@ -22,9 +22,10 @@ import os
 import json
 import logging
 import time
+import uuid
+from pathlib import Path
 
-from flask import Flask, request, jsonify
-from werkzeug.utils import secure_filename
+from fastapi import FastAPI, status, Request, Response, UploadFile, File
 
 from services.auth import (
     generate_api_key,
@@ -42,16 +43,11 @@ from services.cache import (
     check_redis_connection,
 )
 
+app = FastAPI()
 
-# --------------------------------------------------------------------------
-# App setup
-# --------------------------------------------------------------------------
+app.state.upload_folder = "temp_uploads"
 
-app = Flask(__name__)
-
-app.config["UPLOAD_FOLDER"] = "temp_uploads"
-
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+os.makedirs(app.state.upload_folder, exist_ok=True)
 
 logger = logging.getLogger("aeterna")
 
@@ -62,7 +58,6 @@ REQUIRED_ENV_VARS = [
     "REDIS_URL",
     "POSTGRES_URL",
 ]
-
 
 # --------------------------------------------------------------------------
 # Rate-limit configuration
@@ -84,7 +79,6 @@ KEYGEN_RATE_WINDOW = int(os.getenv("KEYGEN_RATE_WINDOW", "3600"))
 def _get_uptime_seconds() -> float:
     return round(time.time() - _START_TIME, 2)
 
-
 def _get_env_status() -> dict:
     return {
         name: bool(os.getenv(name))
@@ -92,36 +86,30 @@ def _get_env_status() -> dict:
     }
 
 
-def _get_client_ip():
+def _get_client_ip(request: Request):
     """
     Get the client IP.
-
-    In the current deployment, Nginx should pass the real client IP through
-    X-Real-IP. We only fall back to Flask's remote_addr; we do not trust an
-    arbitrary X-Forwarded-For header supplied directly by clients.
     """
     return (
         request.headers.get("X-Real-IP")
-        or request.remote_addr
+        or (request.client.host if request.client else None)
         or "unknown"
     )
-
 
 # --------------------------------------------------------------------------
 # Routes
 # --------------------------------------------------------------------------
 
-@app.route("/", methods=["GET"])
+@app.get("/")
 def root():
-    return jsonify({
-        "service": "aeterna-api",
-        "message": "Aeterna API is running.",
-        "status": "ok",
-    }), 200
+    return {
+            "service": "aeterna-api",
+            "message": "Aeterna API is running.",
+            "status": "ok",
+        }
 
-
-@app.route("/health", methods=["GET"])
-def healthcheck():
+@app.get("/health")
+def healthcheck(response: Response):
     """
     Check API readiness and required infrastructure dependencies.
 
@@ -180,18 +168,20 @@ def healthcheck():
         and redis_healthy
     )
 
-    response = {
+    health = {
         "status": "healthy" if all_healthy else "degraded",
         "uptime": _get_uptime_seconds(),
         "environment": env_status,
         "dependencies": dependencies,
     }
 
-    return jsonify(response), 200 if all_healthy else 503
+    if not all_healthy:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
+    return health
 
-@app.route("/generate-key", methods=["POST"])
-def create_api_key():
+@app.post("/generate-key", status_code=status.HTTP_201_CREATED)
+def create_api_key(request: Request, response: Response):
     """
     Generate a new API key.
 
@@ -199,7 +189,7 @@ def create_api_key():
     rate-limited by client IP using Redis.
     """
 
-    client_ip = _get_client_ip()
+    client_ip = _get_client_ip(request)
 
     try:
         allowed, remaining = check_rate_limit(
@@ -210,37 +200,39 @@ def create_api_key():
         )
 
         if not allowed:
-            return jsonify({
+            response.status_code = status.HTTP_429_TOO_MANY_REQUESTS
+            return {
                 "error": (
                     "Too many API keys generated. "
                     "Please try again later."
                 )
-            }), 429
+            }
 
         api_key = generate_api_key()
 
-        response = jsonify({
+        generated_key = {
             "api_key": api_key,
             "message": (
                 "Store this API key securely. "
                 "It will not be shown again."
             ),
-        })
+        }
 
         response.headers["X-RateLimit-Remaining"] = str(remaining)
 
-        return response, 201
+        return generated_key
 
     except Exception:
         logger.exception("Failed to generate API key.")
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
-        return jsonify({
+        return {
             "error": "Unable to generate API key."
-        }), 500
+        }
 
 
-@app.route("/score", methods=["POST"])
-def score_file():
+@app.post("/score")
+def score_file(request: Request, response: Response, file: UploadFile = File(...)):
     """
     Accept a single uploaded file and return its survivability score.
 
@@ -254,9 +246,8 @@ def score_file():
     api_key = request.headers.get("X-API-Key")
 
     if not api_key:
-        return jsonify({
-            "error": "API key required."
-        }), 401
+        response.status_code = status.HTTP_401_UNAUTHORIZED
+        return {"error": "API key required."}
 
     # ----------------------------------------------------------------------
     # API key authentication
@@ -264,16 +255,13 @@ def score_file():
 
     try:
         if not is_valid_api_key(api_key):
-            return jsonify({
-                "error": "Invalid API key."
-            }), 401
+            response.status_code = status.HTTP_401_UNAUTHORIZED
+            return {"error": "Invalid API key."}
 
     except Exception:
         logger.exception("API key validation failed.")
-
-        return jsonify({
-            "error": "Unable to authenticate request."
-        }), 500
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return {"error": "Unable to authenticate request."}
 
     # ----------------------------------------------------------------------
     # Rate limiting
@@ -290,46 +278,33 @@ def score_file():
         )
 
         if not allowed:
-            response = jsonify({
-                "error": "Rate limit exceeded. Please try again later."
-            })
-
+            response.status_code = status.HTTP_429_TOO_MANY_REQUESTS
             response.headers["Retry-After"] = str(SCORE_RATE_WINDOW)
             response.headers["X-RateLimit-Remaining"] = "0"
-
-            return response, 429
+            return {"error": "Rate limit exceeded. Please try again later."}
 
     except Exception:
         logger.exception("Rate-limit check failed.")
-
-        return jsonify({
-            "error": "Unable to process request."
-        }), 500
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return {"error": "Unable to process request."}
 
     # ----------------------------------------------------------------------
     # File validation
     # ----------------------------------------------------------------------
 
-    if "file" not in request.files:
-        return jsonify({
-            "error": "No file key in request"
-        }), 400
-
-    file = request.files["file"]
-
     if file.filename == "":
-        return jsonify({
-            "error": "No file selected"
-        }), 400
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return {"error": "No file selected"}
 
-    filename = secure_filename(file.filename)
+    filename = f"{uuid.uuid4().hex}{Path(file.filename).suffix}"
 
     file_path = os.path.join(
-        app.config["UPLOAD_FOLDER"],
+        app.state.upload_folder,
         filename,
     )
 
-    file.save(file_path)
+    with open(file_path, "wb") as f:
+        f.write(file.file.read())
 
     result_text = None
 
@@ -341,13 +316,8 @@ def score_file():
         cached_response = get_cached_score(file_path)
 
         if cached_response is not None:
-            response = jsonify(cached_response)
-
-            response.headers["X-RateLimit-Remaining"] = str(
-                remaining
-            )
-
-            return response, 200
+            response.headers["X-RateLimit-Remaining"] = str(remaining)
+            return cached_response
 
         result_text = run_inference(file_path)
 
@@ -376,13 +346,9 @@ def score_file():
 
         cache_score(file_path, results)
 
-        response = jsonify(results)
+        response.headers["X-RateLimit-Remaining"] = str(remaining)
 
-        response.headers["X-RateLimit-Remaining"] = str(
-            remaining
-        )
-
-        return response, 200
+        return results
 
     except json.JSONDecodeError:
         logger.exception(
@@ -392,9 +358,8 @@ def score_file():
             result_text,
         )
 
-        return jsonify({
-            "error": "Failed to process file. Please try again."
-        }), 500
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return {"error": "Failed to process file. Please try again."}
 
     except Exception:
         logger.exception(
@@ -402,12 +367,13 @@ def score_file():
             filename,
         )
 
-        return jsonify({
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return {
             "error": (
                 "An internal error occurred while processing "
                 "the file."
             )
-        }), 500
+        }
 
     finally:
         if os.path.exists(file_path):
@@ -419,16 +385,3 @@ def score_file():
                     "Failed to remove temp upload '%s'.",
                     file_path,
                 )
-
-
-# --------------------------------------------------------------------------
-# Development entrypoint
-# --------------------------------------------------------------------------
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-
-    app.run(
-        debug=False,
-        port=3000,
-    )

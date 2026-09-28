@@ -19,7 +19,7 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install flask pytest python-dotenv
+          pip install fastapi httpx pytest python-dotenv python-multipart
 
       - name: Run tests
-        run: pytest -q tests/test_endpoints.py
+        run: python -m pytest -q tests/test_endpoints.py
