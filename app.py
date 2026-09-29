@@ -26,7 +26,6 @@ import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, status, Request, Response, UploadFile, File
-from prometheus_fastapi_instrumentator import Instrumentator
 
 from services.auth import (
     generate_api_key,
