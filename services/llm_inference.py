@@ -117,8 +117,6 @@ def run_inference(file_path):
 
     text = response.content[0].text
 
-    # Split off the summary the same way app.py will, so we can inject
-    # the code-computed score into the JSON half.
     parts = text.split("---", 1)
     raw_json = (
         parts[0]
@@ -131,13 +129,10 @@ def run_inference(file_path):
 
     score_data = json.loads(raw_json)
 
-    # Defensive: if the model ignored instructions and emitted a score,
-    # drop it so the code-computed value is the single source of truth.
     score_data.pop("survivability_score", None)
 
     sub_scores = score_data.get("sub_scores", {})
     score, _active_weight = compute_survivability_score(sub_scores)
     score_data["survivability_score"] = score
 
-    # Re-emit in the exact "<json>\n---\n<summary>" shape app.py parses.
     return f"{json.dumps(score_data)}\n---\n{summary}"

@@ -1,35 +1,14 @@
 """
 Prometheus metrics for the Aeterna API.
-
-HOW THIS FILE FITS IN
----------------------
-- This file DEFINES the metrics (what we count/time) and provides small
-  helper functions that app.py calls when something happens
-  (e.g. record_cache_result(hit=True)).
-- get_metrics() renders every metric as plain text. app.py serves that
-  text at GET /metrics, and Prometheus reads it every 15 seconds.
-
-MULTIPROCESS MODE (why there is extra code)
--------------------------------------------
-In Docker, uvicorn runs 2 worker processes. Each process has its own
-memory, so each would only know about ITS OWN requests. To combine
-them, prometheus_client can write each worker's numbers into small
-files in a shared folder, and merge them when /metrics is requested.
-
-That mode turns on when the environment variable
-PROMETHEUS_MULTIPROC_DIR is set (docker-compose.yml sets it). When it
-is NOT set (e.g. local `uvicorn --reload`, a single process), the
-normal in-memory registry is used and everything just works.
 """
 
 import os
 
-# The folder must exist BEFORE metrics are created, so this comes first.
 _MULTIPROC_DIR = os.getenv("PROMETHEUS_MULTIPROC_DIR")
 if _MULTIPROC_DIR:
     os.makedirs(_MULTIPROC_DIR, exist_ok=True)
 
-from prometheus_client import (  # noqa: E402  (must come after makedirs)
+from prometheus_client import (
     CONTENT_TYPE_LATEST,
     REGISTRY,
     CollectorRegistry,
@@ -39,26 +18,12 @@ from prometheus_client import (  # noqa: E402  (must come after makedirs)
     multiprocess,
 )
 
-# --------------------------------------------------------------------------
-# Metric definitions
-# --------------------------------------------------------------------------
-# "Labels" split one metric into separate series. For example,
-# aeterna_http_requests_total{path="/score", status="200"} is counted
-# separately from {path="/score", status="429"}.
-#
-# IMPORTANT: only use labels with a small, fixed set of values
-# (like "hit"/"miss"). Never use things like file names or API keys
-# as labels, because every new value creates a new series in memory.
-
-# Every HTTP request: how many, split by method / path / status code.
 HTTP_REQUESTS_TOTAL = Counter(
     "aeterna_http_requests_total",
     "Total HTTP requests handled by the API.",
     ["method", "path", "status"],
 )
 
-# How long each HTTP request took, in seconds. Buckets go up to 120s
-# because /score calls an LLM and can be slow.
 HTTP_REQUEST_DURATION = Histogram(
     "aeterna_http_request_duration_seconds",
     "HTTP request latency in seconds.",
@@ -66,45 +31,36 @@ HTTP_REQUEST_DURATION = Histogram(
     buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120),
 )
 
-# Redis score-cache lookups: "hit" (skipped the pipeline) or "miss".
 CACHE_EVENTS_TOTAL = Counter(
     "aeterna_cache_events_total",
     "Score cache lookups, split by result (hit/miss).",
     ["result"],
 )
 
-# Requests rejected by the rate limiter (HTTP 429).
 RATE_LIMIT_REJECTIONS_TOTAL = Counter(
     "aeterna_rate_limit_rejections_total",
     "Requests rejected by the rate limiter.",
     ["endpoint"],
 )
 
-# Time spent in run_inference() (ExifTool + DB lookups + vector search
-# + the Anthropic call). This is the slow part of /score.
 INFERENCE_DURATION = Histogram(
     "aeterna_inference_duration_seconds",
     "Time spent running the full scoring pipeline for one file.",
     buckets=(0.5, 1, 2, 5, 10, 20, 30, 60, 120),
 )
 
-# Scoring failures, split by cause.
 SCORING_FAILURES_TOTAL = Counter(
     "aeterna_scoring_failures_total",
     "Failed /score attempts, split by reason.",
     ["reason"],
 )
 
-# Tokens sent to / received from the Anthropic API (this is your cost).
 LLM_TOKENS_TOTAL = Counter(
     "aeterna_llm_tokens_total",
     "Anthropic API tokens used, split by direction (input/output).",
     ["direction"],
 )
 
-# Pre-create the known label values at 0. Without this, a series only
-# appears after its first event, and Prometheus can miss that first
-# increase when calculating rates.
 for _result in ("hit", "miss"):
     CACHE_EVENTS_TOTAL.labels(result=_result)
 for _endpoint in ("score", "generate-key"):
@@ -116,7 +72,7 @@ for _direction in ("input", "output"):
 
 
 # --------------------------------------------------------------------------
-# Helper functions (called from app.py / llm_inference.py)
+# Helper functions
 # --------------------------------------------------------------------------
 
 def record_http_request(method: str, path: str, status_code: int, duration: float):
@@ -154,7 +110,7 @@ def record_llm_usage(input_tokens: int, output_tokens: int):
 
 
 # --------------------------------------------------------------------------
-# Rendering (called by the /metrics route)
+# Rendering 
 # --------------------------------------------------------------------------
 
 def get_metrics():
@@ -166,12 +122,9 @@ def get_metrics():
         as the HTTP response.
     """
     if os.getenv("PROMETHEUS_MULTIPROC_DIR"):
-        # Multiprocess mode: build a fresh registry and have it read
-        # (and add up) the files written by every worker process.
         registry = CollectorRegistry()
         multiprocess.MultiProcessCollector(registry)
     else:
-        # Single process: just use the normal in-memory registry.
         registry = REGISTRY
 
     return generate_latest(registry), CONTENT_TYPE_LATEST
