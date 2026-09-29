@@ -1,6 +1,7 @@
-# Aeterna RAG API
+# Aeterna RAG API 
+https://deepwiki.com/Abiolr/aeterna-RAG
 
-*Aeterna* — Latin for **"eternal"** — is a standalone RAG-based microservice
+*Aeterna*, Latin for **"eternal"**, is a standalone RAG-based microservice
 that scores a file's long-term survivability (0–100): how likely it is to
 remain readable and accessible decades from now, based on file-format
 openness, adoption, supersession status, metadata richness, and lifecycle
@@ -98,7 +99,8 @@ the moment a score comes back:
     object with the five sub-scores (each backed by cited evidence),
     `missing_inputs`, an explanation, and a markdown summary. The code then
     computes the final `survivability_score` from those sub-scores (see
-    [Who computes what](#who-computes-what)).
+    [Who computes what](#who-computes-what)). The token usage of the call is
+    recorded for the metrics (see [Observability](#observability--metrics)).
 11. **Cache and return the result** — `app.py` parses the response into
     JSON plus a markdown summary, writes it to Redis (keyed by file hash,
     7-day TTL) via `cache_score`, and sends it back to the caller. The temp
@@ -106,6 +108,10 @@ the moment a score comes back:
     client gets a generic error message — the real error (stack trace, raw
     LLM output, etc.) is only ever logged server-side, never exposed over
     the API.
+
+Throughout all of this, an HTTP middleware in `app.py` times every request and
+the pipeline records cache hits/misses, rate-limit rejections, inference time,
+failures, and LLM token usage as Prometheus metrics.
 
 ## Tech stack
 
@@ -121,7 +127,10 @@ the moment a score comes back:
 | Cache + rate limiting | Redis | Caches `/score` results by SHA-256 file hash (7-day TTL) and backs the fixed-window rate limiters (`services/cache.py`) |
 | File metadata extraction | ExifTool, via `pyexiftool` | Requires the ExifTool system binary, not just the Python wrapper |
 | Config | `python-dotenv` | Loads `ANTHROPIC_API_KEY`, `REDIS_URL`, `POSTGRES_URL`, etc. from `.env` |
-| Containerization | Docker + Docker Compose | Multi-stage `dockerfile`; `docker-compose.yml` (prod) wires up the API, Redis, Nginx, and Certbot; `docker-compose.dev.yml` adds a local Postgres |
+| Metrics instrumentation | `prometheus-client` | Counters/histograms defined in `services/metrics.py`, exposed at `GET /metrics`. Runs in multiprocess mode in Docker so both uvicorn workers are aggregated |
+| Metrics storage | Prometheus (`prom/prometheus`) | Scrapes the API every 15 s over the internal Docker network; 15-day retention. Bound to `127.0.0.1:9090` on the host |
+| Dashboards | Grafana (`grafana/grafana`) | Prometheus datasource is provisioned from `grafana/provisioning/datasources/`. Bound to `127.0.0.1:3001` on the host |
+| Containerization | Docker + Docker Compose | Multi-stage `dockerfile`; `docker-compose.yml` (prod) wires up the API, Redis, Prometheus, Grafana, Nginx, and Certbot; `docker-compose.dev.yml` adds a local Postgres |
 | Reverse proxy / TLS | Nginx + Certbot | Nginx terminates HTTPS and proxies to the API container; Certbot manages Let's Encrypt certificate issuance/renewal |
 | Hosting | AWS EC2 (Elastic IP) | Long-lived public IP for the instance |
 | Database hosting | AWS RDS (PostgreSQL) | Production lookup + API-key database. Only reachable from the EC2 instance (not publicly accessible) |
@@ -141,7 +150,7 @@ auth tables, but semantic search stays in ChromaDB.
 
 ## Data storage & backups
 
-Aeterna keeps its data in three places, each with a specific job:
+Aeterna keeps its data in a few places, each with a specific job:
 
 | Data | Where it lives (production) | Backup |
 |------|------------------------------|--------|
@@ -150,6 +159,8 @@ Aeterna keeps its data in three places, each with a specific job:
 | **Vector DB** (`db/aeterna_vector_db/`, ChromaDB) | Local disk inside the API container | **AWS S3** |
 | **Raw source XML** (`raw_xml/`) | Not in the image (excluded via `.dockerignore`) | **AWS S3** |
 | **Score cache** (Redis) | Redis container, persisted to the `redis-data` volume | None (disposable; safe to lose) |
+| **Metrics history** (Prometheus) | `prometheus-data` volume, 15-day retention | None (disposable) |
+| **Grafana state** (dashboards, users) | `grafana-data` volume | None — dashboards built in the UI are lost if the volume is |
 
 Notes:
 
@@ -169,6 +180,8 @@ Notes:
   a recovery path, not something the running service depends on.
 - **Redis is intentionally disposable.** It only holds cached scores and
   rate-limit counters, all of which are regenerated on demand.
+- **Prometheus data is intentionally disposable.** Metrics are operational
+  telemetry, not records; losing them only loses history.
 
 ## Prerequisites
 
@@ -250,6 +263,16 @@ The service listens on `http://localhost:3000`. FastAPI also serves
 interactive API docs at `http://localhost:3000/docs` (Swagger UI) and
 `http://localhost:3000/redoc`.
 
+Locally the API runs as a single process, so `PROMETHEUS_MULTIPROC_DIR` is
+unset and metrics use the normal in-memory registry. You can inspect them
+directly:
+
+```bash
+curl http://localhost:3000/metrics
+```
+
+The local dev compose file does not include Prometheus or Grafana.
+
 Run the tests:
 
 ```bash
@@ -258,8 +281,8 @@ python -m pytest -q tests/test_endpoints.py
 ```
 
 The tests are pre-deploy smoke tests: external dependencies (Postgres, Redis,
-the Anthropic SDK, and the service modules) are mocked, so they run without any
-infrastructure.
+the Anthropic SDK, the metrics module, and the other service modules) are
+mocked, so they run without any infrastructure.
 
 ## Authentication & rate limits
 
@@ -292,7 +315,8 @@ Rate limiting is a fixed-window counter in Redis. The client IP is read from
 not trusted. `X-Real-IP` is only trustworthy when the app is reachable
 exclusively through Nginx; the API container's port should not be exposed
 publicly. Responses include an `X-RateLimit-Remaining` header, and `429`s from
-`/score` also include `Retry-After`.
+`/score` also include `Retry-After`. Every rejection is counted in the
+`aeterna_rate_limit_rejections_total` metric.
 
 ## Endpoints
 
@@ -300,6 +324,7 @@ publicly. Responses include an `X-RateLimit-Remaining` header, and `429`s from
 |--------|-----------------|------|-------------|
 | GET    | `/`             | —    | Basic service identity check |
 | GET    | `/health`       | —    | Readiness probe. Checks required env vars, runs `SELECT 1` against PostgreSQL, and `PING`s Redis. Returns `200` when everything is healthy, `503` (`"status": "degraded"`) otherwise. |
+| GET    | `/metrics`      | — (internal only) | Prometheus scrape endpoint (text exposition format). Not for public use: Nginx is expected to block it, and Prometheus reaches it over the internal Docker network. Hidden from `/docs`. See [Observability](#observability--metrics). |
 | POST   | `/generate-key` | —    | Generate a new API key. Rate-limited per IP. Returns `201`, or `429` when the limit is hit. |
 | POST   | `/score`        | `X-API-Key` | Upload a file (`multipart/form-data`, field `file`) and get its survivability score. Results are cached in Redis by file hash (7-day TTL) — a repeat upload of the same file skips the pipeline entirely. |
 
@@ -361,16 +386,19 @@ docker compose down
 ```
 
 Before running, make sure you have a `.env` file in the project root with
-`ANTHROPIC_API_KEY`, `REDIS_URL`, `REDIS_PASSWORD`, and `POSTGRES_URL` set
-(referenced by `docker-compose.yml` via `env_file`). In production,
-`POSTGRES_URL` points at the **AWS RDS** instance.
+`ANTHROPIC_API_KEY`, `REDIS_URL`, `REDIS_PASSWORD`, `POSTGRES_URL`, and
+`GRAFANA_ADMIN_PASSWORD` set (referenced by `docker-compose.yml` via
+`env_file` / variable substitution). In production, `POSTGRES_URL` points at
+the **AWS RDS** instance.
 
-`docker-compose.yml` brings up four services:
+`docker-compose.yml` brings up six services:
 
 | Service | Role |
 |---------|------|
-| `aeterna-api` | The FastAPI/uvicorn app itself (pulled from Docker Hub) |
+| `aeterna-api` | The FastAPI/uvicorn app itself (pulled from Docker Hub). Sets `PROMETHEUS_MULTIPROC_DIR` and mounts a `tmpfs` at `/tmp/prometheus_multiproc` so the two workers can share metric counters (wiped on every container start) |
 | `redis` | Score cache and rate-limit store, password-protected via `REDIS_PASSWORD`, persisted to a named volume (`redis-data`) |
+| `prometheus` | Scrapes `aeterna-api:3000/metrics` every 15 s; config mounted from `prometheus/prometheus.yml`; 15-day retention; data in the `prometheus-data` volume. Published only on `127.0.0.1:9090` |
+| `grafana` | Dashboards. Admin user `admin`, password from `GRAFANA_ADMIN_PASSWORD`; Prometheus datasource provisioned from `grafana/provisioning/datasources/`; data in the `grafana-data` volume. Published only on `127.0.0.1:3001` |
 | `nginx` | Reverse proxy — terminates HTTPS on 80/443 and forwards to `aeterna-api` on its internal port |
 | `certbot` | Issues and renews the Let's Encrypt TLS certificate Nginx uses |
 
@@ -397,7 +425,8 @@ Aeterna is deployed on a single **AWS EC2** instance with an **Elastic IP**
 issued and renewed by **Certbot**. Structured data lives in **AWS RDS
 (PostgreSQL)**, which is only reachable from the EC2 instance, and copies of
 the source JSON, vector DB, and raw XML are kept in **AWS S3** (see
-[Data storage & backups](#data-storage--backups)). Public DNS
+[Data storage & backups](#data-storage--backups)). Prometheus and Grafana run
+on the same instance (see [Observability](#observability--metrics)). Public DNS
 is handled by **DuckDNS**, resolving to:
 
 **https://aeterna-api.duckdns.org**
@@ -413,12 +442,13 @@ dependencies (`fastapi`, `httpx`, `pytest`, `python-dotenv`,
 
 **2. `Build and Deploy` (`.github/workflows/deploy.yml`)** — triggered by
 `workflow_run` when the `tests` workflow **completes**, and only proceeds if
-the tests **succeeded**. It then:
+the tests **succeeded** on a push. It then:
 
 1. Builds the Docker image and pushes it to **Docker Hub**
    (`abiolar/aeterna-rag-api:latest`).
-2. Copies the current `docker-compose.yml` and `nginx/default.conf` to
-   the EC2 instance over SCP.
+2. Copies the deployment config to the EC2 instance over SCP:
+   `docker-compose.yml`, `nginx/default.conf`, `prometheus/prometheus.yml`,
+   and `grafana/provisioning/datasources/prometheus.yml`.
 3. SSHes into the EC2 instance, prunes stale containers/images/build cache
    (and logs disk usage before and after, since the instance has limited
    disk), then runs `docker compose pull` followed by `docker compose up -d`,
@@ -426,13 +456,22 @@ the tests **succeeded**. It then:
 
 This means deploys are just `git push` to `main` — a failing test run blocks
 the deploy, and there are no manual SSH or Docker commands for a routine
-update. The EC2 host only needs `docker-compose.yml`, `nginx/default.conf`, and
-its `.env`; the application image itself is always pulled fresh from Docker Hub.
+update. The EC2 host only needs the four config files above and its `.env`
+(including `GRAFANA_ADMIN_PASSWORD`); the application image itself is always
+pulled fresh from Docker Hub.
 
 **Required GitHub Actions secrets:** `DOCKERHUB_USERNAME`,
 `DOCKERHUB_TOKEN`, `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`.
 
 ## Monitoring
+
+Production has two complementary layers of monitoring:
+
+- **External uptime** (UptimeRobot) — "is it reachable right now?"
+- **Internal metrics** (Prometheus + Grafana) — "how is it behaving over
+  time?" See [Observability & metrics](#observability--metrics).
+
+### Uptime (UptimeRobot)
 
 Production uptime is monitored with **UptimeRobot**, which polls the public
 `/health` endpoint (`https://aeterna-api.duckdns.org/health`).
@@ -445,6 +484,69 @@ well as a dead API.
 Because Docker's `restart: unless-stopped` and the container `HEALTHCHECK` only
 handle local restarts, UptimeRobot is the external check that the whole path
 (DNS, Nginx, TLS, API, RDS, Redis) is reachable from the outside.
+
+## Observability & metrics
+
+The API exposes Prometheus metrics at `GET /metrics`. All metric definitions
+and `record_*` helper functions live in `services/metrics.py`; `app.py` and
+`services/llm_inference.py` call the helpers when something happens.
+
+### What's measured
+
+| Metric | Type | Labels | Meaning |
+|--------|------|--------|---------|
+| `aeterna_http_requests_total` | Counter | `method`, `path`, `status` | Every HTTP request handled |
+| `aeterna_http_request_duration_seconds` | Histogram | `method`, `path` | Request latency (buckets up to 120 s, since `/score` calls an LLM) |
+| `aeterna_cache_events_total` | Counter | `result` (`hit`/`miss`) | Redis score-cache lookups on `/score` |
+| `aeterna_rate_limit_rejections_total` | Counter | `endpoint` (`score`/`generate-key`) | Requests rejected with `429` |
+| `aeterna_inference_duration_seconds` | Histogram | — | Time in `run_inference()` (ExifTool + DB lookup + vector search + Anthropic call) |
+| `aeterna_scoring_failures_total` | Counter | `reason` (`invalid_llm_json`/`internal`) | Failed `/score` attempts |
+| `aeterna_llm_tokens_total` | Counter | `direction` (`input`/`output`) | Anthropic API tokens used — the cost signal |
+
+Design notes:
+
+- **Label cardinality is kept small and fixed.** The HTTP middleware labels
+  requests with the route *template* (e.g. `/score`), not the raw URL, and
+  groups unknown URLs (bots probing `/admin`, etc.) as `unmatched`. File
+  names and API keys are never used as labels.
+- **A request that crashes is recorded as a `500`.**
+- **`/metrics` scrapes are not counted**, so Prometheus doesn't add noise to
+  its own data.
+- **Known label values are pre-created at 0**, so Prometheus doesn't miss the
+  first increase of a series when computing rates.
+- **Multiprocess mode.** In Docker, uvicorn runs 2 workers, each with its own
+  memory. When `PROMETHEUS_MULTIPROC_DIR` is set (as in `docker-compose.yml`),
+  each worker writes its counters into files in that shared folder and
+  `/metrics` merges them, so the numbers cover both workers. The folder is a
+  `tmpfs`, so it starts empty on every container start. When the variable is
+  unset (local single-process dev), the normal in-memory registry is used.
+
+### Accessing Prometheus and Grafana
+
+Both are bound to `127.0.0.1` on the EC2 host and are **not** exposed
+publicly. To reach them from your machine, use an SSH tunnel:
+
+```bash
+ssh -L 3001:localhost:3001 -L 9090:localhost:9090 <EC2_USER>@<EC2_HOST>
+```
+
+Then open `http://localhost:3001` (Grafana; log in as `admin` with
+`GRAFANA_ADMIN_PASSWORD`) and `http://localhost:9090` (Prometheus).
+
+The Prometheus datasource is provisioned automatically, but dashboards are
+not — they are built in the Grafana UI and stored in the `grafana-data`
+volume.
+
+### Keeping `/metrics` private
+
+`/metrics` has no authentication of its own. It is meant to be reachable only
+over the internal Docker network (Prometheus → `aeterna-api:3000`), and Nginx
+is expected to block it on the public hostname. After any Nginx config change,
+verify:
+
+```bash
+curl -i https://aeterna-api.duckdns.org/metrics   # should NOT return metrics
+```
 
 ## Error handling
 
@@ -482,9 +584,10 @@ handled by FastAPI itself and return its standard `422` response body.
   `temp_uploads/` — but a mislabeled or absent extension will still cause an
   incorrect or failed format lookup. Content-based format detection isn't
   used.
-- **The test suite is smoke-level only.** Every service module is mocked, so
-  the tests cover routing, auth, and rate-limit branching in `app.py` but not
-  the scoring pipeline, the Postgres queries, or the LLM call.
+- **The test suite is smoke-level only.** Every service module (including
+  `services/metrics`) is mocked, so the tests cover routing, auth, and
+  rate-limit branching in `app.py` but not the scoring pipeline, the Postgres
+  queries, the LLM call, or the real metric definitions.
 - **The `400` empty-filename check in `/score` is effectively dead code.**
   `file: UploadFile = File(...)` makes the field required, so a request
   with no `file` part gets `422` from FastAPI before the handler runs at
@@ -495,12 +598,20 @@ handled by FastAPI itself and return its standard `422` response body.
   the `400` branch. Reaching the `400` path requires a client that sends a
   filename explicitly present but empty, which isn't something normal
   tooling does.
+- **`/metrics` is unauthenticated at the application level.** Its privacy
+  relies on Nginx blocking it and on the API container's port not being
+  exposed publicly.
+- **Prometheus and Grafana images are unpinned (`:latest`).** Pin specific
+  versions once the setup is stable so a redeploy can't silently change them.
+- **No alert rules yet.** Prometheus's `evaluation_interval` is set but no
+  alerting rules or Alertmanager are configured; the dashboards are for
+  inspection, and UptimeRobot remains the only alerting path.
 
 ## Project structure
 
 ```
 .
-├── app.py                    # FastAPI entrypoint (/, /health, /generate-key, /score)
+├── app.py                    # FastAPI entrypoint (/, /health, /metrics, /generate-key, /score) + metrics middleware
 ├── services/
 │   ├── __init__.py
 │   ├── auth.py                # API key generation + validation (PostgreSQL, SHA-256 hashed)
@@ -510,11 +621,18 @@ handled by FastAPI itself and return its standard `422` response body.
 │   ├── vector_db_setup.py    # Chroma vector store setup + query
 │   ├── data_pipeline.py      # Aggregates context for one file
 │   ├── system_prompt.py      # Builds the LLM sub-scoring prompt
-│   └── llm_inference.py      # Calls the Anthropic API + computes the final score
+│   ├── llm_inference.py      # Calls the Anthropic API + computes the final score
+│   └── metrics.py            # Prometheus metric definitions + record_* helpers + /metrics rendering
 ├── tests/
 │   └── test_endpoints.py      # Pre-deploy smoke tests (all services mocked)
 ├── nginx/
 │   └── default.conf          # Nginx reverse-proxy + TLS config
+├── prometheus/
+│   └── prometheus.yml        # Scrape config (API + Prometheus itself, 15 s interval)
+├── grafana/
+│   └── provisioning/
+│       └── datasources/
+│           └── prometheus.yml # Auto-provisions the Prometheus datasource in Grafana
 ├── data/                     # PRONOM/LoC export JSON (build_lookup_db.py, vector_db_setup.py inputs); copy stored in S3
 ├── db/                       # Generated on build — not committed
 │   └── aeterna_vector_db/    # Persistent Chroma vector store (vector_db_setup.py output); copy stored in S3
@@ -526,7 +644,7 @@ handled by FastAPI itself and return its standard `422` response body.
 │       ├── tests.yml          # CI: pytest smoke tests on push/PR
 │       └── deploy.yml         # CD: after tests pass, build + push image, deploy to EC2
 ├── dockerfile
-├── docker-compose.yml         # Production stack (API, Redis, Nginx, Certbot)
+├── docker-compose.yml         # Production stack (API, Redis, Prometheus, Grafana, Nginx, Certbot)
 ├── docker-compose.dev.yml     # Local dev stack (API, Redis, Postgres)
 ├── pytest.ini
 ├── .dockerignore

@@ -110,21 +110,17 @@ def _get_client_ip(request: Request):
 # --------------------------------------------------------------------------
 @app.middleware("http")
 async def track_metrics(request: Request, call_next):
-    # Don't count Prometheus's own scrapes; they'd just add noise.
     if request.url.path == "/metrics":
         return await call_next(request)
 
     start = time.perf_counter()
-    status_code = 500  # if the request crashes, we record it as a 500
+    status_code = 500
 
     try:
         response = await call_next(request)
         status_code = response.status_code
         return response
     finally:
-        # Use the route template ("/score"), not the raw URL, so labels
-        # stay a small fixed set. Unknown URLs (bots probing /admin etc.)
-        # are grouped as "unmatched".
         route = request.scope.get("route")
         path = route.path if route else "unmatched"
 
@@ -135,9 +131,7 @@ async def track_metrics(request: Request, call_next):
 @app.get("/metrics", include_in_schema=False)
 def metrics():
     """
-    Prometheus scrape endpoint. All the logic lives in services/metrics.py.
-    Not for public use: nginx blocks it (see Step 8); Prometheus reaches it
-    over the internal Docker network.
+    Prometheus scrape endpoint.
     """
     payload, content_type = get_metrics()
     return Response(content=payload, media_type=content_type)
