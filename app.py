@@ -26,6 +26,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, status, Request, Response, UploadFile, File
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from services.auth import (
     generate_api_key,
@@ -41,6 +42,15 @@ from services.cache import (
     cache_score,
     check_rate_limit,
     check_redis_connection,
+)
+
+from services.metrics import (
+    get_metrics,
+    record_http_request,
+    record_cache_result,
+    record_rate_limit_rejection,
+    record_inference_duration,
+    record_scoring_failure,
 )
 
 app = FastAPI()
@@ -99,6 +109,39 @@ def _get_client_ip(request: Request):
 # --------------------------------------------------------------------------
 # Routes
 # --------------------------------------------------------------------------
+@app.middleware("http")
+async def track_metrics(request: Request, call_next):
+    # Don't count Prometheus's own scrapes; they'd just add noise.
+    if request.url.path == "/metrics":
+        return await call_next(request)
+
+    start = time.perf_counter()
+    status_code = 500  # if the request crashes, we record it as a 500
+
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+        return response
+    finally:
+        # Use the route template ("/score"), not the raw URL, so labels
+        # stay a small fixed set. Unknown URLs (bots probing /admin etc.)
+        # are grouped as "unmatched".
+        route = request.scope.get("route")
+        path = route.path if route else "unmatched"
+
+        record_http_request(
+            request.method, path, status_code, time.perf_counter() - start
+        )
+
+@app.get("/metrics", include_in_schema=False)
+def metrics():
+    """
+    Prometheus scrape endpoint. All the logic lives in services/metrics.py.
+    Not for public use: nginx blocks it (see Step 8); Prometheus reaches it
+    over the internal Docker network.
+    """
+    payload, content_type = get_metrics()
+    return Response(content=payload, media_type=content_type)
 
 @app.get("/")
 def root():
@@ -200,6 +243,7 @@ def create_api_key(request: Request, response: Response):
         )
 
         if not allowed:
+            record_rate_limit_rejection("generate-key")
             response.status_code = status.HTTP_429_TOO_MANY_REQUESTS
             return {
                 "error": (
@@ -278,6 +322,7 @@ def score_file(request: Request, response: Response, file: UploadFile = File(...
         )
 
         if not allowed:
+            record_rate_limit_rejection("score")
             response.status_code = status.HTTP_429_TOO_MANY_REQUESTS
             response.headers["Retry-After"] = str(SCORE_RATE_WINDOW)
             response.headers["X-RateLimit-Remaining"] = "0"
@@ -316,10 +361,17 @@ def score_file(request: Request, response: Response, file: UploadFile = File(...
         cached_response = get_cached_score(file_path)
 
         if cached_response is not None:
+            record_cache_result(hit=True)
             response.headers["X-RateLimit-Remaining"] = str(remaining)
             return cached_response
 
-        result_text = run_inference(file_path)
+        record_cache_result(hit=False)
+
+        inference_start = time.perf_counter()
+        try:
+            result_text = run_inference(file_path)
+        finally:
+            record_inference_duration(time.perf_counter() - inference_start)
 
         parts = result_text.split("---", 1)
 
@@ -351,6 +403,7 @@ def score_file(request: Request, response: Response, file: UploadFile = File(...
         return results
 
     except json.JSONDecodeError:
+        record_scoring_failure("invalid_llm_json")
         logger.exception(
             "Failed to parse LLM JSON output for file '%s'. "
             "Raw output: %r",
@@ -362,6 +415,7 @@ def score_file(request: Request, response: Response, file: UploadFile = File(...
         return {"error": "Failed to process file. Please try again."}
 
     except Exception:
+        record_scoring_failure("internal")
         logger.exception(
             "Unexpected error while scoring file '%s'.",
             filename,
