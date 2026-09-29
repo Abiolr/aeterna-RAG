@@ -14,7 +14,7 @@ sys.modules["services.cache"] = MagicMock()
 sys.modules["services.data_pipeline"] = MagicMock()
 sys.modules["services.system_prompt"] = MagicMock()
 sys.modules["anthropic"] = MagicMock()
-sys.modules["redis"] = MagicMock()
+sys.modules["services.metrics"] = MagicMock()
 
 from fastapi.testclient import TestClient
 
@@ -126,3 +126,13 @@ def test_score_rate_limited(client):
     )
 
     assert resp.status_code == 429
+
+def test_metrics_ok(client):
+    import services.metrics as metrics
+
+    metrics.get_metrics.return_value = (
+        b"# HELP test A test metric\n",
+        "text/plain; version=0.0.4; charset=utf-8",
+    )
+
+    assert client.get("/metrics").status_code == 200

@@ -1,0 +1,20 @@
+# How Prometheus behaves overall
+global:
+  scrape_interval: 15s       # visit each target every 15 seconds
+  evaluation_interval: 15s   # (only matters if you add alert rules later)
+
+# The list of things to scrape. Each "job" is one group of targets.
+scrape_configs:
+
+  # Your API. "aeterna-api" is the service name from docker-compose.yml;
+  # Docker's internal network resolves it to the API container. Port 3000
+  # is the API's internal port. This traffic never leaves the server.
+  - job_name: aeterna-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["aeterna-api:3000"]
+
+  # Prometheus monitoring itself (handy for checking it's healthy).
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

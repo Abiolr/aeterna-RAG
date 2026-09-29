@@ -20,6 +20,8 @@ from anthropic import Anthropic
 from services.system_prompt import system_prompt
 from services.data_pipeline import get_system_data
 
+from services.metrics import record_llm_usage
+
 load_dotenv(override=True)
 api_key = os.getenv("ANTHROPIC_API_KEY")
 
@@ -110,6 +112,8 @@ def run_inference(file_path):
             ),
         }],
     )
+
+    record_llm_usage(response.usage.input_tokens, response.usage.output_tokens)
 
     text = response.content[0].text
 
