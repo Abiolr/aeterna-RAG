@@ -40,7 +40,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-                    source: "docker-compose.yml,nginx/default.conf,prometheus/prometheus.yml,grafana/provisioning/datasources/prometheus.yml"
+          source: "docker-compose.yml,nginx/default.conf,prometheus/prometheus.yml,grafana/provisioning/datasources/prometheus.yml"
           target: "~/"
           strip_components: 0
 
