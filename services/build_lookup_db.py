@@ -482,6 +482,7 @@ def lookup_by_extension(ext: str):
                     f.release_date,
                     f.withdrawn_date,
                     f.is_superseded,
+                    f.loc_id,
                     l.disclosure,
                     l.adoption,
                     l.licensing_and_patents,

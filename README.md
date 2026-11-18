@@ -80,13 +80,23 @@ the moment a score comes back:
    format data. This returns hard facts about the format: whether it's
    open or proprietary, whether it's been superseded, and any known
    release/withdrawal dates.
-7. **Find similar formats** — `services/vector_db_setup.py` takes a short
-   natural-language question ("is .png a strong, sustainable file
-   format?") and searches a vector database (ChromaDB) of Library of
-   Congress sustainability write-ups, pulling back documents about
-   comparable formats. This gives the LLM extra context to reason with —
-   it's not used to identify the file itself, just to add comparative
-   grounding.
+7. **Retrieve format context** — `services/vector_db_setup.py` builds a
+   query profile from what steps 5–6 already identified (format name,
+   ExifTool's sniffed MIME type, PRONOM PUIDs, LoC content category) and
+   ranks the ChromaDB store of Library of Congress sustainability
+   write-ups against it. Results come back in three groups:
+   - **`same_format_family`** — LoC records sharing a PUID / MIME type /
+     extension with the file, ranked by semantic similarity. These fill
+     gaps when PRONOM has no LoC cross-reference (so the lookup's
+     disclosure/adoption fields are empty).
+   - **`related_formats`** — explicit LoC relationships of those records
+     (later/earlier versions, parent formats, equivalents).
+   - **`comparable_formats`** — semantically similar formats in the same
+     content category (e.g. JPEG 2000 / JPEG XL for a PNG), used for
+     comparison and migration recommendations in the summary.
+
+   Each record is returned as compact structured fields (from
+   `data/loc_formats.json`) rather than the full free-text document.
 8. **Assemble the context** — `services/data_pipeline.py` bundles the
    ExifTool metadata, the PostgreSQL lookup results, and the vector search
    results into one package.
@@ -561,6 +571,32 @@ block whether or not scoring succeeds.
 Note that request-validation failures (e.g. a missing `file` field) are
 handled by FastAPI itself and return its standard `422` response body.
 
+## Evals
+
+`evals/run_eval.py` measures two things cheaply (no ground truth, so
+these are consistency/influence metrics, not accuracy):
+
+- **Variance** — each file is scored N times with identical context.
+  Reports per-file score std/range, per-sub-score std, how often runs
+  agree on which terms are null, and the JSON parse-failure rate.
+- **Ablation** — each file is scored N more times with `vector_results`
+  emptied (standard lookup only). Reports the score delta vs. the full
+  pipeline (and whether it exceeds run-to-run noise), how many extra
+  sub-scores the vector context fills, and how often evidence cites it.
+
+```bash
+python -m evals.run_eval                    # test_files/*, 3 runs per condition
+python -m evals.run_eval --runs 5 --files test_files/*.png
+python -m evals.run_eval --no-ablation      # variance only
+```
+
+Needs the same `ANTHROPIC_API_KEY` / `POSTGRES_URL` as the API. To keep
+it cheap, context is gathered once per file, generation stops at the
+`---` delimiter (no markdown summary), and the system prompt is
+prompt-cached across repeat runs; the default run (10 files × 3 runs ×
+2 conditions) costs roughly $0.25–0.50. Results land in
+`evals/results/<timestamp>/` (`runs.jsonl`, `summary.json`, `report.md`).
+
 ## Known limitations
 
 - **`age_lifecycle_health` is frequently null.** PRONOM populates
@@ -572,11 +608,11 @@ handled by FastAPI itself and return its standard `422` response body.
   It currently stores PRONOM's internal numeric `FormatID` rather
   than a `fmt/___`-style PUID, so it can't be joined back against
   `formats.puid` yet.
-- **No fallback yet for formats absent from the LoC vector store.**
-  If a PRONOM format has no corresponding Library of Congress entry,
-  the vector search step currently just returns whatever it finds as
-  the nearest (possibly irrelevant) semantic neighbors, rather than
-  a distance-threshold check or a PRONOM-only rule-based score.
+- **Formats absent from the LoC vector store get no LoC context.**
+  Weak same-format matches and comparable formats are filtered by
+  similarity thresholds and content category, so an unknown format
+  yields empty lists rather than irrelevant neighbours — but there is
+  no PRONOM-only rule-based fallback score yet.
 - **The file extension used for the format lookup comes from the
   client-supplied filename**, not from inspecting file contents. The saved
   temp filename itself is randomly generated (only the extension is taken
@@ -618,13 +654,17 @@ handled by FastAPI itself and return its standard `422` response body.
 │   ├── cache.py               # Redis score cache (SHA-256 file hash, 7-day TTL) + rate limiter
 │   ├── file_extraction.py    # ExifTool metadata + extension helpers
 │   ├── build_lookup_db.py    # PRONOM/LoC PostgreSQL lookup DB build + query
-│   ├── vector_db_setup.py    # Chroma vector store setup + query
+│   ├── vector_db_setup.py    # Chroma vector store setup + format-context retrieval
 │   ├── data_pipeline.py      # Aggregates context for one file
 │   ├── system_prompt.py      # Builds the LLM sub-scoring prompt
 │   ├── llm_inference.py      # Calls the Anthropic API + computes the final score
 │   └── metrics.py            # Prometheus metric definitions + record_* helpers + /metrics rendering
 ├── tests/
 │   └── test_endpoints.py      # Pre-deploy smoke tests (all services mocked)
+├── evals/
+│   ├── run_eval.py            # Variance + vector-ablation eval runner
+│   ├── metrics.py             # Pure metric functions
+│   └── results/               # Per-run outputs (runs.jsonl, summary.json, report.md)
 ├── nginx/
 │   └── default.conf          # Nginx reverse-proxy + TLS config
 ├── prometheus/
