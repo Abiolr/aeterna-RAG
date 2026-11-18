@@ -29,8 +29,8 @@ in the range 0.0–1.0 (1.0 = maximally favorable/safe):
 
 | Term | Weight | What it measures |
 |------|--------|-------------------|
-| **Openness** | 0.25 | Is the format an open, disclosed standard, or closed/proprietary? Based on the `disclosure` and `licensing_and_patents` fields from the Library of Congress sustainability data — i.e. whether the format's specification is publicly documented, and whether it's encumbered by patents or restrictive licensing. |
-| **Adoption** | 0.25 | How widely is the format actually used and supported? Based on the LoC `adoption` field, mapped from qualitative language (e.g. "industry standard" → high, "limited support" → low). |
+| **Openness** | 0.25 | Is the format an open, disclosed standard, or closed/proprietary? Based on the `disclosure` and `licensing_and_patents` fields from the Library of Congress sustainability data — i.e. whether the format's specification is publicly documented, and whether it's encumbered by patents or restrictive licensing. Taken from the lookup row; if that is empty, from a matching `same_format_family` record retrieved from the vector store (cited as such). |
+| **Adoption** | 0.25 | How widely is the format actually used and supported? Based on the LoC `adoption` field, mapped from qualitative language (e.g. "industry standard" → high, "limited support" → low). Same lookup-first, vector-fallback rule as openness. |
 | **Non-supersession** | 0.20 | Has this format been replaced by a newer version? Based directly on the `is_superseded` flag from PRONOM registry data — structured fact, not LLM inference. |
 | **Metadata completeness** | 0.15 | How much provenance/content metadata (title, author, description, authenticity/C2PA claims) does the *uploaded file itself* carry, versus just opaque technical container fields? |
 | **Age / lifecycle health** | 0.15 | Is the format actively maintained, or aged past its support horizon? Requires both a `release_date` and either a `withdrawn_date` or explicit lifecycle language — PRONOM populates these for only a small minority of formats, so this term is frequently `null`. |
@@ -41,6 +41,14 @@ The **LLM only assigns the five sub-scores** (each with cited evidence), lists
 `missing_inputs`, and writes the explanation and markdown summary. It is
 explicitly instructed to use only the retrieved CONTEXT — never outside
 knowledge — and to return `null` for any term it can't ground in the data.
+
+Retrieved vector context is supplementary: it can only **fill** an empty
+lookup field (openness/adoption, from a `same_format_family` record that
+matches the file's PUID, MIME type or extension), never override one.
+`comparable_formats` and `related_formats` never set a sub-score — they feed
+the summary's comparison and recommendations — and a "has later version"
+relationship never changes `non_supersession`, which comes only from
+PRONOM's `is_superseded` flag.
 
 The **final `survivability_score` is computed deterministically in Python**
 (`compute_survivability_score` in `services/llm_inference.py`): each non-null
@@ -101,13 +109,17 @@ the moment a score comes back:
    ExifTool metadata, the PostgreSQL lookup results, and the vector search
    results into one package.
 9. **Build the prompt** — `services/system_prompt.py` takes that package
-   and turns it into a detailed instruction set for the LLM: the five
-   sub-scores and how to assign each one, and strict rules against
-   inventing information that isn't in the retrieved data.
+   (serialised as JSON) and turns it into a detailed instruction set for the
+   LLM: the three CONTEXT sources in order of authority (ExifTool metadata,
+   lookup rows, vector context), when vector context may fill a gap and how
+   to cite it, the five sub-scores and how to assign each one, and strict
+   rules against inventing information that isn't in the retrieved data.
 10. **Score it** — `services/llm_inference.py` sends that prompt to the
     Anthropic API (`claude-haiku-4-5-20251001`), which returns a JSON
     object with the five sub-scores (each backed by cited evidence),
-    `missing_inputs`, an explanation, and a markdown summary. The code then
+    `missing_inputs`, an explanation, and a markdown summary (sections:
+    format identification, sub-score rationale, related and comparable
+    formats, preservation recommendations). The code then
     computes the final `survivability_score` from those sub-scores (see
     [Who computes what](#who-computes-what)). The token usage of the call is
     recorded for the metrics (see [Observability](#observability--metrics)).
@@ -620,6 +632,15 @@ prompt-cached across repeat runs; the default run (10 files × 3 runs ×
   `temp_uploads/` — but a mislabeled or absent extension will still cause an
   incorrect or failed format lookup. Content-based format detection isn't
   used.
+- **The lookup's authoritative row is chosen by `is_superseded` only.**
+  When several formats share an extension, `lookup_by_extension` doesn't
+  rank by MIME type, so the first row can be an unrelated format (e.g. for
+  `.wav` an EXIF audio entry ranks above WAVE). The vector step works around
+  this using ExifTool's sniffed MIME type, but the lookup row the prompt
+  treats as authoritative is unchanged.
+- **Evals measure consistency, not accuracy.** `evals/` reports score
+  variance and the vector store's influence (see [Evals](#evals)); there is
+  no labelled ground-truth set yet.
 - **The test suite is smoke-level only.** Every service module (including
   `services/metrics`) is mocked, so the tests cover routing, auth, and
   rate-limit branching in `app.py` but not the scoring pipeline, the Postgres
