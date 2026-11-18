@@ -571,6 +571,32 @@ block whether or not scoring succeeds.
 Note that request-validation failures (e.g. a missing `file` field) are
 handled by FastAPI itself and return its standard `422` response body.
 
+## Evals
+
+`evals/run_eval.py` measures two things cheaply (no ground truth, so
+these are consistency/influence metrics, not accuracy):
+
+- **Variance** — each file is scored N times with identical context.
+  Reports per-file score std/range, per-sub-score std, how often runs
+  agree on which terms are null, and the JSON parse-failure rate.
+- **Ablation** — each file is scored N more times with `vector_results`
+  emptied (standard lookup only). Reports the score delta vs. the full
+  pipeline (and whether it exceeds run-to-run noise), how many extra
+  sub-scores the vector context fills, and how often evidence cites it.
+
+```bash
+python -m evals.run_eval                    # test_files/*, 3 runs per condition
+python -m evals.run_eval --runs 5 --files test_files/*.png
+python -m evals.run_eval --no-ablation      # variance only
+```
+
+Needs the same `ANTHROPIC_API_KEY` / `POSTGRES_URL` as the API. To keep
+it cheap, context is gathered once per file, generation stops at the
+`---` delimiter (no markdown summary), and the system prompt is
+prompt-cached across repeat runs; the default run (10 files × 3 runs ×
+2 conditions) costs roughly $0.25–0.50. Results land in
+`evals/results/<timestamp>/` (`runs.jsonl`, `summary.json`, `report.md`).
+
 ## Known limitations
 
 - **`age_lifecycle_health` is frequently null.** PRONOM populates
@@ -635,6 +661,10 @@ handled by FastAPI itself and return its standard `422` response body.
 │   └── metrics.py            # Prometheus metric definitions + record_* helpers + /metrics rendering
 ├── tests/
 │   └── test_endpoints.py      # Pre-deploy smoke tests (all services mocked)
+├── evals/
+│   ├── run_eval.py            # Variance + vector-ablation eval runner
+│   ├── metrics.py             # Pure metric functions
+│   └── results/               # Per-run outputs (runs.jsonl, summary.json, report.md)
 ├── nginx/
 │   └── default.conf          # Nginx reverse-proxy + TLS config
 ├── prometheus/

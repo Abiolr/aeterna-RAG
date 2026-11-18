@@ -71,6 +71,98 @@ def compute_survivability_score(sub_scores: dict):
     return round(100 * final_fraction), active_weight
 
 
+MODEL = "claude-haiku-4-5-20251001"
+
+USER_INSTRUCTION = (
+    "Analyze the retrieved data. Return the scoring JSON first, "
+    "followed by the delimiter '---', and then write a "
+    "comprehensive markdown summary."
+)
+
+
+def parse_model_output(text: str):
+    """
+    Split the model's "<json>\\n---\\n<summary>" reply, parse the JSON
+    and inject the code-computed survivability_score.
+
+    Returns:
+        (score_data, summary). summary is "" if the reply stopped at
+        the delimiter.
+
+    Raises:
+        json.JSONDecodeError if the JSON part doesn't parse.
+    """
+    parts = text.split("---", 1)
+    raw_json = (
+        parts[0]
+        .strip()
+        .removeprefix("```json")
+        .removesuffix("```")
+        .strip()
+    )
+    summary = parts[1].strip() if len(parts) > 1 else ""
+
+    score_data = json.loads(raw_json)
+
+    score_data.pop("survivability_score", None)
+
+    sub_scores = score_data.get("sub_scores", {})
+    score, _active_weight = compute_survivability_score(sub_scores)
+    score_data["survivability_score"] = score
+
+    return score_data, summary
+
+
+def score_context(data, *, client=None, with_summary=True, max_tokens=12000,
+                  cache_system=False, record_usage=False):
+    """
+    Score one file from already-gathered CONTEXT data.
+
+    Args:
+        data: dict from services.data_pipeline.get_system_data.
+        client: Optional Anthropic client to reuse.
+        with_summary: If False, generation stops at the "---"
+            delimiter so only the scoring JSON is produced (used by
+            evals to avoid paying for the markdown summary).
+        max_tokens: Output token cap.
+        cache_system: Mark the system prompt for prompt caching
+            (useful when the same file is scored repeatedly).
+        record_usage: Report token usage to Prometheus (before
+            parsing, so failed parses are still counted).
+
+    Returns:
+        (score_data, summary, response) — response is the raw
+        Anthropic Message, for usage accounting.
+    """
+    client = client or Anthropic(api_key=api_key)
+
+    system_text = system_prompt(
+        data["file_metadata"],
+        data["file_format_details"],
+        data["vector_results"],
+    )
+    system = system_text
+    if cache_system:
+        system = [{"type": "text", "text": system_text, "cache_control": {"type": "ephemeral"}}]
+
+    extra = {} if with_summary else {"stop_sequences": ["---"]}
+
+    response = client.messages.create(
+        model=MODEL,
+        system=system,
+        max_tokens=max_tokens,
+        messages=[{"role": "user", "content": USER_INSTRUCTION}],
+        **extra,
+    )
+
+    if record_usage:
+        record_llm_usage(response.usage.input_tokens, response.usage.output_tokens)
+
+    text = response.content[0].text
+    score_data, summary = parse_model_output(text)
+    return score_data, summary, response
+
+
 def run_inference(file_path):
     """
     Run the full survivability-scoring pipeline for one file.
@@ -93,46 +185,6 @@ def run_inference(file_path):
     """
     data = get_system_data(file_path)
 
-    client = Anthropic(api_key=api_key)
-
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        system=system_prompt(
-            data["file_metadata"],
-            data["file_format_details"],
-            data["vector_results"],
-        ),
-        max_tokens=12000,
-        messages=[{
-            "role": "user",
-            "content": (
-                "Analyze the retrieved data. Return the scoring JSON first, "
-                "followed by the delimiter '---', and then write a "
-                "comprehensive markdown summary."
-            ),
-        }],
-    )
-
-    record_llm_usage(response.usage.input_tokens, response.usage.output_tokens)
-
-    text = response.content[0].text
-
-    parts = text.split("---", 1)
-    raw_json = (
-        parts[0]
-        .strip()
-        .removeprefix("```json")
-        .removesuffix("```")
-        .strip()
-    )
-    summary = parts[1].strip() if len(parts) > 1 else ""
-
-    score_data = json.loads(raw_json)
-
-    score_data.pop("survivability_score", None)
-
-    sub_scores = score_data.get("sub_scores", {})
-    score, _active_weight = compute_survivability_score(sub_scores)
-    score_data["survivability_score"] = score
+    score_data, summary, _response = score_context(data, record_usage=True)
 
     return f"{json.dumps(score_data)}\n---\n{summary}"
